@@ -356,9 +356,8 @@ open class MobileSharedApplication: SharedApplication {
         if !UIAccessibility.isGuidedAccessEnabled {
             // Sessions don't use openURL for communication like MobileSafariViewController, they just need to be retained
             if #available(iOS 12.0, *) {
-                let session = MobileWebAuthenticationSession(url: authURL, presentingVC: controller) { [weak self] callbackUrl, didCancel in
+                let session = MobileWebAuthenticationSession(url: authURL, presentingVC: controller) { [weak self] callbackUrl in
                     self?.authChannel = nil
-
                     if let url = callbackUrl {
                         DropboxClientsManager.handleRedirectURL(url) { result in }
                     }
@@ -368,9 +367,8 @@ open class MobileSharedApplication: SharedApplication {
                 return
             }
             if #available(iOS 11.0, *) {
-                let session = MobileAuthenticationSession(url: authURL) { [weak self] callbackUrl, _ in
+                let session = MobileAuthenticationSession(url: authURL) { [weak self] callbackUrl in
                     self?.authChannel = nil
-
                     if let url = callbackUrl {
                         DropboxClientsManager.handleRedirectURL(url) { result in }
                     }
@@ -473,15 +471,10 @@ fileprivate class MobileWebAuthenticationSession: ASWebAuthenticationSession {
     
     weak var presentingWindow: UIWindow?
     
-    public init(url: URL, presentingVC: UIViewController, completion: @escaping ((URL?, Bool) -> Void)) {
+    public init(url: URL, presentingVC: UIViewController, completion: @escaping ((URL?) -> Void)) {
         // Assume the the custom URL scheme is registered in the app's Info.plist
         super.init(url: url, callbackURLScheme: nil) { callbackURL, error in
-            var didCancel = false
-            if let rawError = (error as NSError?)?.code, let errorCode = ASWebAuthenticationSessionError.Code(rawValue: rawError) {
-                didCancel = errorCode == .canceledLogin
-            }
-            
-            completion(callbackURL, didCancel)
+            completion(callbackURL)
         }
         
         if #available(iOS 13.0, *) {
@@ -504,14 +497,10 @@ extension MobileWebAuthenticationSession: ASWebAuthenticationPresentationContext
 @available(iOS, introduced: 11.0, deprecated: 12.0)
 fileprivate class MobileAuthenticationSession: SFAuthenticationSession {
     
-    public init(url: URL, completion: @escaping ((URL?, Bool) -> Void)) {
+    public init(url: URL, completion: @escaping ((URL?) -> Void)) {
         // Assume the the custom URL scheme is registered in the app's Info.plist
         super.init(url: url, callbackURLScheme: nil) { callbackURL, error in
-            var didCancel = false
-            if let rawError = (error as NSError?)?.code, let errorCode = SFAuthenticationError.Code(rawValue: rawError) {
-                didCancel = errorCode == .canceledLogin
-            }
-            completion(callbackURL, didCancel)
+            completion(callbackURL)
         }
     }
     
