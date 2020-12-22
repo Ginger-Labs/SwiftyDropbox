@@ -5,6 +5,7 @@
 #if canImport(UIKit)
 
 import Foundation
+import AuthenticationServices
 import SafariServices
 import UIKit
 import WebKit
@@ -294,7 +295,8 @@ open class MobileSharedApplication: SharedApplication {
     let sharedApplication: UIApplication
     let controller: UIViewController?
     let openURL: ((URL) -> Void)
-
+    
+    private var authChannel: AnyObject?
     weak var loadingStatusDelegate: LoadingStatusDelegate?
 
     public init(sharedApplication: UIApplication, controller: UIViewController?, openURL: @escaping ((URL) -> Void)) {
@@ -343,10 +345,53 @@ open class MobileSharedApplication: SharedApplication {
     }
 
     open func presentAuthChannel(_ authURL: URL, tryIntercept: @escaping ((URL) -> Bool), cancelHandler: @escaping (() -> Void)) {
-        if let controller = self.controller {
-            let safariViewController = MobileSafariViewController(url: authURL, cancelHandler: cancelHandler)
-            controller.present(safariViewController, animated: true, completion: nil)
+        guard self.authChannel == nil else {
+            return
         }
+        guard let controller = self.controller else {
+            return
+        }
+        
+        // ASWebAuthenticationSession and SFAuthenticationSession don't work with guided access (rdar://40809553)
+        if !UIAccessibility.isGuidedAccessEnabled {
+            // Sessions don't use openURL for communication like MobileSafariViewController, they just need to be retained
+            if #available(iOS 12.0, *) {
+                let session = MobileWebAuthenticationSession(url: authURL, presentingVC: controller) { [weak self] callbackUrl, didCancel in
+                    self?.authChannel = nil
+
+                    if let url = callbackUrl {
+                        DropboxClientsManager.handleRedirectURL(url) { result in }
+                    }
+                }
+                self.authChannel = session
+                session.start()
+                return
+            }
+            if #available(iOS 11.0, *) {
+                let session = MobileAuthenticationSession(url: authURL) { [weak self] callbackUrl, _ in
+                    self?.authChannel = nil
+
+                    if let url = callbackUrl {
+                        DropboxClientsManager.handleRedirectURL(url) { result in }
+                    }
+                }
+                self.authChannel = session
+                session.start()
+                return
+            }
+        }
+        
+        let safariVC = MobileSafariViewController(url: authURL) { [weak self] svc, didCancel in
+            self?.authChannel = nil
+            
+            if didCancel {
+                cancelHandler()
+            } else {
+                svc.dismiss(animated: true, completion: nil)
+            }
+        }
+        self.authChannel = safariVC
+        controller.present(safariVC, animated: true, completion: nil)
     }
 
     open func presentExternalApp(_ url: URL) {
@@ -358,12 +403,10 @@ open class MobileSharedApplication: SharedApplication {
     }
 
     open func dismissAuthController() {
-        if let controller = self.controller {
-            if let presentedViewController = controller.presentedViewController {
-                if presentedViewController.isBeingDismissed == false && presentedViewController is MobileSafariViewController {
-                    controller.dismiss(animated: true, completion: nil)
-                }
-            }
+        // Only MobileSafariViewController needs to be manually dismissed
+        if let presentedViewController = self.authChannel as? MobileSafariViewController, !presentedViewController.isBeingDismissed {
+            self.authChannel = nil
+            presentedViewController.dismiss(animated: true, completion: nil)
         }
     }
 
@@ -425,23 +468,78 @@ open class MobileSharedApplication: SharedApplication {
     }
 }
 
-open class MobileSafariViewController: SFSafariViewController, SFSafariViewControllerDelegate {
-    var cancelHandler: (() -> Void) = {}
+@available(iOS 12.0, *)
+fileprivate class MobileWebAuthenticationSession: ASWebAuthenticationSession {
+    
+    weak var presentingWindow: UIWindow?
+    
+    public init(url: URL, presentingVC: UIViewController, completion: @escaping ((URL?, Bool) -> Void)) {
+        // Assume the the custom URL scheme is registered in the app's Info.plist
+        super.init(url: url, callbackURLScheme: nil) { callbackURL, error in
+            var didCancel = false
+            if let rawError = (error as NSError?)?.code, let errorCode = ASWebAuthenticationSessionError.Code(rawValue: rawError) {
+                didCancel = errorCode == .canceledLogin
+            }
+            
+            completion(callbackURL, didCancel)
+        }
+        
+        if #available(iOS 13.0, *) {
+            self.presentingWindow = presentingVC.viewIfLoaded?.window
+            self.presentationContextProvider = self
+        }
+    }
+    
+}
 
-    public init(url: URL, cancelHandler: @escaping (() -> Void)) {
-			  super.init(url: url, entersReaderIfAvailable: false)
-        self.cancelHandler = cancelHandler
+@available(iOS 13.0, *)
+extension MobileWebAuthenticationSession: ASWebAuthenticationPresentationContextProviding {
+    
+    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        return self.presentingWindow ?? UIApplication.shared.windows.first { $0.isKeyWindow }!
+    }
+    
+}
+
+@available(iOS 11.0, *)
+fileprivate class MobileAuthenticationSession: SFAuthenticationSession {
+    
+    public init(url: URL, completion: @escaping ((URL?, Bool) -> Void)) {
+        // Assume the the custom URL scheme is registered in the app's Info.plist
+        super.init(url: url, callbackURLScheme: nil) { callbackURL, error in
+            var didCancel = false
+            if let rawError = (error as NSError?)?.code, let errorCode = SFAuthenticationError.Code(rawValue: rawError) {
+                didCancel = errorCode == .canceledLogin
+            }
+            completion(callbackURL, didCancel)
+        }
+    }
+    
+}
+
+open class MobileSafariViewController: SFSafariViewController, SFSafariViewControllerDelegate {
+    var dismissHandler: ((MobileSafariViewController, Bool) -> Void)
+
+    public init(url: URL, dismissHandler: @escaping ((MobileSafariViewController, Bool) -> Void)) {
+        self.dismissHandler = dismissHandler
+        if #available(iOS 11.0, *) {
+            var configuration = SFSafariViewController.Configuration()
+            configuration.entersReaderIfAvailable = false
+            super.init(url: url, configuration: configuration)
+        } else {
+            super.init(url: url, entersReaderIfAvailable: false)
+        }
         self.delegate = self;
     }
 
     public func safariViewController(_ controller: SFSafariViewController, didCompleteInitialLoad didLoadSuccessfully: Bool) {
         if (!didLoadSuccessfully) {
-            controller.dismiss(animated: true, completion: nil)
+            self.dismissHandler(self, false)
         }
     }
 
     public func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
-        self.cancelHandler()
+        self.dismissHandler(self, true)
     }
     
 }
