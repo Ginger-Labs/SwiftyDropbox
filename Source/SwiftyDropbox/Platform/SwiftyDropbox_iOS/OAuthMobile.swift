@@ -366,17 +366,6 @@ open class MobileSharedApplication: SharedApplication {
                 session.start()
                 return
             }
-            if #available(iOS 11.0, *) {
-                let session = MobileAuthenticationSession(url: authURL) { [weak self] callbackUrl in
-                    self?.authChannel = nil
-                    if let url = callbackUrl {
-                        DropboxClientsManager.handleRedirectURL(url) { result in }
-                    }
-                }
-                self.authChannel = session
-                session.start()
-                return
-            }
         }
         
         let safariVC = MobileSafariViewController(url: authURL) { [weak self] svc, didCancel in
@@ -490,18 +479,6 @@ extension MobileWebAuthenticationSession: ASWebAuthenticationPresentationContext
     
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
         return self.presentingWindow ?? UIApplication.shared.windows.first { $0.isKeyWindow }!
-    }
-    
-}
-
-@available(iOS, introduced: 11.0, deprecated: 12.0)
-fileprivate class MobileAuthenticationSession: SFAuthenticationSession {
-    
-    public init(url: URL, completion: @escaping ((URL?) -> Void)) {
-        // Assume the the custom URL scheme is registered in the app's Info.plist
-        super.init(url: url, callbackURLScheme: nil) { callbackURL, error in
-            completion(callbackURL)
-        }
     }
     
 }
