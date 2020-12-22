@@ -501,7 +501,7 @@ extension MobileWebAuthenticationSession: ASWebAuthenticationPresentationContext
     
 }
 
-@available(iOS 11.0, *)
+@available(iOS, introduced: 11.0, deprecated: 12.0)
 fileprivate class MobileAuthenticationSession: SFAuthenticationSession {
     
     public init(url: URL, completion: @escaping ((URL?, Bool) -> Void)) {
@@ -523,7 +523,7 @@ open class MobileSafariViewController: SFSafariViewController, SFSafariViewContr
     public init(url: URL, dismissHandler: @escaping ((MobileSafariViewController, Bool) -> Void)) {
         self.dismissHandler = dismissHandler
         if #available(iOS 11.0, *) {
-            var configuration = SFSafariViewController.Configuration()
+            let configuration = SFSafariViewController.Configuration()
             configuration.entersReaderIfAvailable = false
             super.init(url: url, configuration: configuration)
         } else {
