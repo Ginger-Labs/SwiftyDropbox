@@ -296,8 +296,10 @@ open class MobileSharedApplication: SharedApplication {
     let controller: UIViewController?
     let openURL: ((URL) -> Void)
     
-    private var authChannel: AnyObject?
     weak var loadingStatusDelegate: LoadingStatusDelegate?
+    
+    // Authentication sessions need to be retained, and prevents showing two sessions/VCs at the same time
+    private var sessionOrViewController: AnyObject?
 
     public init(sharedApplication: UIApplication, controller: UIViewController?, openURL: @escaping ((URL) -> Void)) {
         // fields saved for app-extension safety
@@ -345,7 +347,7 @@ open class MobileSharedApplication: SharedApplication {
     }
 
     open func presentAuthChannel(_ authURL: URL, tryIntercept: @escaping ((URL) -> Bool), cancelHandler: @escaping (() -> Void)) {
-        guard self.authChannel == nil else {
+        guard self.sessionOrViewController == nil else {
             return
         }
         guard let controller = self.controller else {
@@ -357,19 +359,19 @@ open class MobileSharedApplication: SharedApplication {
             // Sessions don't use openURL for communication like MobileSafariViewController, they just need to be retained
             if #available(iOS 12.0, *) {
                 let session = MobileWebAuthenticationSession(url: authURL, presentingVC: controller) { [weak self] callbackUrl in
-                    self?.authChannel = nil
+                    self?.sessionOrViewController = nil
                     if let url = callbackUrl {
                         DropboxClientsManager.handleRedirectURL(url) { result in }
                     }
                 }
-                self.authChannel = session
+                self.sessionOrViewController = session
                 session.start()
                 return
             }
         }
         
         let safariVC = MobileSafariViewController(url: authURL) { [weak self] svc, didCancel in
-            self?.authChannel = nil
+            self?.sessionOrViewController = nil
             
             if didCancel {
                 cancelHandler()
@@ -377,7 +379,7 @@ open class MobileSharedApplication: SharedApplication {
                 svc.dismiss(animated: true, completion: nil)
             }
         }
-        self.authChannel = safariVC
+        self.sessionOrViewController = safariVC
         controller.present(safariVC, animated: true, completion: nil)
     }
 
@@ -391,8 +393,8 @@ open class MobileSharedApplication: SharedApplication {
 
     open func dismissAuthController() {
         // Only MobileSafariViewController needs to be manually dismissed
-        if let presentedViewController = self.authChannel as? MobileSafariViewController, !presentedViewController.isBeingDismissed {
-            self.authChannel = nil
+        if let presentedViewController = self.sessionOrViewController as? MobileSafariViewController, !presentedViewController.isBeingDismissed {
+            self.sessionOrViewController = nil
             presentedViewController.dismiss(animated: true, completion: nil)
         }
     }
