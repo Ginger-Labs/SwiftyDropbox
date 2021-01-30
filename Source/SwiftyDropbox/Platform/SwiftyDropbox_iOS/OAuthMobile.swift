@@ -17,9 +17,9 @@ extension DropboxClientsManager {
     ///     - sharedApplication: The shared UIApplication instance in your app.
     ///     - controller: A UIViewController to present the auth flow from.
     ///     - openURL: Handler to open a URL.
-    public static func authorizeFromController(_ sharedApplication: UIApplication, controller: UIViewController?, openURL: @escaping ((URL) -> Void)) {
+    public static func authorizeFromController(_ sharedApplication: UIApplication, controller: UIViewController?, openURL: @escaping ((URL) -> Void), completion: @escaping DropboxOAuthCompletion) {
         precondition(DropboxOAuthManager.sharedOAuthManager != nil, "Call `DropboxClientsManager.setupWithAppKey` or `DropboxClientsManager.setupWithTeamAppKey` before calling this method")
-        let sharedMobileApplication = MobileSharedApplication(sharedApplication: sharedApplication, controller: controller, openURL: openURL)
+        let sharedMobileApplication = MobileSharedApplication(sharedApplication: sharedApplication, controller: controller, openURL: openURL, completion: completion)
         MobileSharedApplication.sharedMobileApplication = sharedMobileApplication
         DropboxOAuthManager.sharedOAuthManager.authorizeFromSharedApplication(sharedMobileApplication)
     }
@@ -49,10 +49,10 @@ extension DropboxClientsManager {
     ///     If you need to set up `DropboxClient`/`DropboxTeamClient` without `DropboxClientsManager`,
     ///     you will have to set up the clients with an appropriate `AccessTokenProvider`.
     public static func authorizeFromControllerV2(
-        _ sharedApplication: UIApplication, controller: UIViewController?, loadingStatusDelegate: LoadingStatusDelegate?, openURL: @escaping ((URL) -> Void), scopeRequest: ScopeRequest?
+        _ sharedApplication: UIApplication, controller: UIViewController?, loadingStatusDelegate: LoadingStatusDelegate?, openURL: @escaping ((URL) -> Void), completion: @escaping DropboxOAuthCompletion, scopeRequest: ScopeRequest?
     ) {
         precondition(DropboxOAuthManager.sharedOAuthManager != nil, "Call `DropboxClientsManager.setupWithAppKey` or `DropboxClientsManager.setupWithTeamAppKey` before calling this method")
-        let sharedMobileApplication = MobileSharedApplication(sharedApplication: sharedApplication, controller: controller, openURL: openURL)
+        let sharedMobileApplication = MobileSharedApplication(sharedApplication: sharedApplication, controller: controller, openURL: openURL, completion: completion)
         sharedMobileApplication.loadingStatusDelegate = loadingStatusDelegate
         MobileSharedApplication.sharedMobileApplication = sharedMobileApplication
         DropboxOAuthManager.sharedOAuthManager.authorizeFromSharedApplication(sharedMobileApplication, usePKCE: true, scopeRequest: scopeRequest)
@@ -295,17 +295,19 @@ open class MobileSharedApplication: SharedApplication {
     let sharedApplication: UIApplication
     let controller: UIViewController?
     let openURL: ((URL) -> Void)
+    let completion: DropboxOAuthCompletion
     
     weak var loadingStatusDelegate: LoadingStatusDelegate?
     
     // Authentication sessions need to be retained, and prevents showing two sessions/VCs at the same time
     private var sessionOrViewController: AnyObject?
 
-    public init(sharedApplication: UIApplication, controller: UIViewController?, openURL: @escaping ((URL) -> Void)) {
+    public init(sharedApplication: UIApplication, controller: UIViewController?, openURL: @escaping ((URL) -> Void), completion: @escaping DropboxOAuthCompletion) {
         // fields saved for app-extension safety
         self.sharedApplication = sharedApplication
         self.controller = controller
         self.openURL = openURL
+        self.completion = completion
     }
 
     open func presentErrorMessage(_ message: String, title: String) {
@@ -361,7 +363,12 @@ open class MobileSharedApplication: SharedApplication {
                 let session = MobileWebAuthenticationSession(url: authURL, presentingVC: controller) { [weak self] callbackUrl in
                     self?.sessionOrViewController = nil
                     if let url = callbackUrl {
-                        DropboxClientsManager.handleRedirectURL(url) { result in }
+                        DropboxClientsManager.handleRedirectURL(url) { [weak self] result in
+                            self?.completion(result)
+                        }
+                    } else {
+                        // cancelHandler is only for URL redirect flow
+                        self?.completion(.cancel)
                     }
                 }
                 self.sessionOrViewController = session
@@ -385,6 +392,9 @@ open class MobileSharedApplication: SharedApplication {
 
     open func presentExternalApp(_ url: URL) {
         self.openURL(url)
+        
+        // Handed over control to safari. End flow with unknown login result
+        self.completion(nil)
     }
 
     open func canPresentExternalApp(_ url: URL) -> Bool {
