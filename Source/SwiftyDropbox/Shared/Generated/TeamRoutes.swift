@@ -865,7 +865,7 @@ open class TeamRoutes {
         return client.request(route, serverArgs: serverArgs)
     }
 
-    /// Permission : Team member file access.
+    /// Permission : Team member file access. The scope for the route is files.team_metadata.write.
     ///
     /// - parameter templateId: An identifier for template added by route  See templatesAddForUser or
     /// templatesAddForTeam.
@@ -879,7 +879,7 @@ open class TeamRoutes {
         return client.request(route, serverArgs: serverArgs)
     }
 
-    /// Permission : Team member file access.
+    /// Permission : Team member file access. The scope for the route is files.team_metadata.write.
     ///
     ///
     ///  - returns: Through the response callback, the caller will receive a `FileProperties.ListTemplateResult` object
@@ -907,7 +907,7 @@ open class TeamRoutes {
         return client.request(route, serverArgs: serverArgs)
     }
 
-    /// Retrieves reporting data about a team's user activity.
+    /// Retrieves reporting data about a team's user activity. Deprecated: Will be removed on July 1st 2021.
     ///
     /// - parameter startDate: Optional starting date (inclusive). If start_date is None or too long ago, this field
     /// will  be set to 6 months ago.
@@ -915,13 +915,14 @@ open class TeamRoutes {
     ///
     ///  - returns: Through the response callback, the caller will receive a `Team.GetActivityReport` object on success
     /// or a `Team.DateRangeError` object on failure.
+    @available(*, unavailable, message:"reportsGetActivity is deprecated.")
     @discardableResult open func reportsGetActivity(startDate: Date? = nil, endDate: Date? = nil) -> RpcRequest<Team.GetActivityReportSerializer, Team.DateRangeErrorSerializer> {
         let route = Team.reportsGetActivity
         let serverArgs = Team.DateRange(startDate: startDate, endDate: endDate)
         return client.request(route, serverArgs: serverArgs)
     }
 
-    /// Retrieves reporting data about a team's linked devices.
+    /// Retrieves reporting data about a team's linked devices. Deprecated: Will be removed on July 1st 2021.
     ///
     /// - parameter startDate: Optional starting date (inclusive). If start_date is None or too long ago, this field
     /// will  be set to 6 months ago.
@@ -929,13 +930,14 @@ open class TeamRoutes {
     ///
     ///  - returns: Through the response callback, the caller will receive a `Team.GetDevicesReport` object on success
     /// or a `Team.DateRangeError` object on failure.
+    @available(*, unavailable, message:"reportsGetDevices is deprecated.")
     @discardableResult open func reportsGetDevices(startDate: Date? = nil, endDate: Date? = nil) -> RpcRequest<Team.GetDevicesReportSerializer, Team.DateRangeErrorSerializer> {
         let route = Team.reportsGetDevices
         let serverArgs = Team.DateRange(startDate: startDate, endDate: endDate)
         return client.request(route, serverArgs: serverArgs)
     }
 
-    /// Retrieves reporting data about a team's membership.
+    /// Retrieves reporting data about a team's membership. Deprecated: Will be removed on July 1st 2021.
     ///
     /// - parameter startDate: Optional starting date (inclusive). If start_date is None or too long ago, this field
     /// will  be set to 6 months ago.
@@ -943,13 +945,14 @@ open class TeamRoutes {
     ///
     ///  - returns: Through the response callback, the caller will receive a `Team.GetMembershipReport` object on
     /// success or a `Team.DateRangeError` object on failure.
+    @available(*, unavailable, message:"reportsGetMembership is deprecated.")
     @discardableResult open func reportsGetMembership(startDate: Date? = nil, endDate: Date? = nil) -> RpcRequest<Team.GetMembershipReportSerializer, Team.DateRangeErrorSerializer> {
         let route = Team.reportsGetMembership
         let serverArgs = Team.DateRange(startDate: startDate, endDate: endDate)
         return client.request(route, serverArgs: serverArgs)
     }
 
-    /// Retrieves reporting data about a team's storage usage.
+    /// Retrieves reporting data about a team's storage usage. Deprecated: Will be removed on July 1st 2021.
     ///
     /// - parameter startDate: Optional starting date (inclusive). If start_date is None or too long ago, this field
     /// will  be set to 6 months ago.
@@ -957,6 +960,7 @@ open class TeamRoutes {
     ///
     ///  - returns: Through the response callback, the caller will receive a `Team.GetStorageReport` object on success
     /// or a `Team.DateRangeError` object on failure.
+    @available(*, unavailable, message:"reportsGetStorage is deprecated.")
     @discardableResult open func reportsGetStorage(startDate: Date? = nil, endDate: Date? = nil) -> RpcRequest<Team.GetStorageReportSerializer, Team.DateRangeErrorSerializer> {
         let route = Team.reportsGetStorage
         let serverArgs = Team.DateRange(startDate: startDate, endDate: endDate)

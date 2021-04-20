@@ -15,7 +15,7 @@ extension DropboxClientsManager {
     ///
     /// - Parameters:
     ///     - sharedApplication: The shared UIApplication instance in your app.
-    ///     - controller: A UIViewController to present the auth flow from.
+    ///     - controller: A UIViewController to present the auth flow from. Reference is weakly held.
     ///     - openURL: Handler to open a URL.
     public static func authorizeFromController(_ sharedApplication: UIApplication, controller: UIViewController?, openURL: @escaping ((URL) -> Void), completion: @escaping DropboxOAuthCompletion) {
         precondition(DropboxOAuthManager.sharedOAuthManager != nil, "Call `DropboxClientsManager.setupWithAppKey` or `DropboxClientsManager.setupWithTeamAppKey` before calling this method")
@@ -34,7 +34,7 @@ extension DropboxClientsManager {
     ///
     /// - Parameters:
     ///     - sharedApplication: The shared UIApplication instance in your app.
-    ///     - controller: A UIViewController to present the auth flow from.
+    ///     - controller: A UIViewController to present the auth flow from. Reference is weakly held.
     ///     - loadingStatusDelegate: An optional delegate to handle loading experience during auth flow.
     ///       e.g. Show a loading spinner and block user interaction while loading/waiting.
     ///       If a delegate is not provided, the SDK will show a default loading spinner when necessary.
@@ -293,7 +293,7 @@ open class MobileSharedApplication: SharedApplication {
     public static var sharedMobileApplication: MobileSharedApplication?
 
     let sharedApplication: UIApplication
-    let controller: UIViewController?
+    weak var controller: UIViewController?
     let openURL: ((URL) -> Void)
     let completion: DropboxOAuthCompletion
     
