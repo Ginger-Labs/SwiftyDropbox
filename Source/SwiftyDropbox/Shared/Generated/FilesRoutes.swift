@@ -76,8 +76,7 @@ open class FilesRoutes {
     /// Copy a file or folder to a different location in the user's Dropbox. If the source path is a folder all its
     /// contents will be copied.
     ///
-    /// - parameter allowSharedFolder: If true, copy will copy contents in shared folder, otherwise cantCopySharedFolder
-    /// in RelocationError will be returned if fromPath contains shared folder. This field is always true for move.
+    /// - parameter allowSharedFolder: This flag has no effect.
     /// - parameter autorename: If there's a conflict, have the Dropbox server try to autorename the file to avoid the
     /// conflict.
     /// - parameter allowOwnershipTransfer: Allow moves by owner even if it would result in an ownership transfer for
@@ -94,8 +93,7 @@ open class FilesRoutes {
     /// Copy a file or folder to a different location in the user's Dropbox. If the source path is a folder all its
     /// contents will be copied.
     ///
-    /// - parameter allowSharedFolder: If true, copy will copy contents in shared folder, otherwise cantCopySharedFolder
-    /// in RelocationError will be returned if fromPath contains shared folder. This field is always true for move.
+    /// - parameter allowSharedFolder: This flag has no effect.
     /// - parameter autorename: If there's a conflict, have the Dropbox server try to autorename the file to avoid the
     /// conflict.
     /// - parameter allowOwnershipTransfer: Allow moves by owner even if it would result in an ownership transfer for
@@ -127,15 +125,10 @@ open class FilesRoutes {
         return client.request(route, serverArgs: serverArgs)
     }
 
-    /// Copy multiple files or folders to different locations at once in the user's Dropbox. If allowSharedFolder in
-    /// RelocationBatchArg is false, this route is atomic. If one entry fails, the whole transaction will abort. If
-    /// allowSharedFolder in RelocationBatchArg is true, atomicity is not guaranteed, but it allows you to copy the
-    /// contents of shared folders to new locations. This route will return job ID immediately and do the async copy job
-    /// in background. Please use copyBatchCheck to check the job status.
+    /// Copy multiple files or folders to different locations at once in the user's Dropbox. This route will return job
+    /// ID immediately and do the async copy job in background. Please use copyBatchCheck to check the job status.
     ///
-    /// - parameter allowSharedFolder: If true, copyBatch will copy contents in shared folder, otherwise
-    /// cantCopySharedFolder in RelocationError will be returned if fromPath in RelocationPath contains shared folder.
-    /// This field is always true for moveBatch.
+    /// - parameter allowSharedFolder: This flag has no effect.
     /// - parameter allowOwnershipTransfer: Allow moves by owner even if it would result in an ownership transfer for
     /// the content being moved. This does not apply to copies.
     ///
@@ -352,8 +345,9 @@ open class FilesRoutes {
         return client.request(route, serverArgs: serverArgs)
     }
 
-    /// Download a folder from the user's Dropbox, as a zip file. The folder must be less than 20 GB in size and have
-    /// fewer than 10,000 total files. The input cannot be a single file. Any single file must be less than 4GB in size.
+    /// Download a folder from the user's Dropbox, as a zip file. The folder must be less than 20 GB in size and any
+    /// single file within must be less than 4 GB in size. The resulting zip must have fewer than 10,000 total file and
+    /// folder entries, including the top level folder. The input cannot be a single file.
     ///
     /// - parameter path: The path of the folder to download.
     /// - parameter overwrite: A boolean to set behavior in the event of a naming conflict. `True` will overwrite
@@ -370,8 +364,9 @@ open class FilesRoutes {
         return client.request(route, serverArgs: serverArgs, overwrite: overwrite, destination: destination)
     }
 
-    /// Download a folder from the user's Dropbox, as a zip file. The folder must be less than 20 GB in size and have
-    /// fewer than 10,000 total files. The input cannot be a single file. Any single file must be less than 4GB in size.
+    /// Download a folder from the user's Dropbox, as a zip file. The folder must be less than 20 GB in size and any
+    /// single file within must be less than 4 GB in size. The resulting zip must have fewer than 10,000 total file and
+    /// folder entries, including the top level folder. The input cannot be a single file.
     ///
     /// - parameter path: The path of the folder to download.
     ///
@@ -387,6 +382,9 @@ open class FilesRoutes {
     /// and whose fileMetadata in ExportResult has exportAs in ExportInfo populated.
     ///
     /// - parameter path: The path of the file to be exported.
+    /// - parameter exportFormat: The file format to which the file should be exported. This must be one of the formats
+    /// listed in the file's export_options returned by getMetadata. If none is specified, the default format (specified
+    /// in export_as in file metadata) will be used.
     /// - parameter overwrite: A boolean to set behavior in the event of a naming conflict. `True` will overwrite
     /// conflicting file at destination. `False` will take no action (but if left unhandled in destination closure, an
     /// NSError will be thrown).
@@ -395,9 +393,9 @@ open class FilesRoutes {
     ///
     ///  - returns: Through the response callback, the caller will receive a `Files.ExportResult` object on success or a
     /// `Files.ExportError` object on failure.
-    @discardableResult open func export(path: String, overwrite: Bool = false, destination: @escaping (URL, HTTPURLResponse) -> URL) -> DownloadRequestFile<Files.ExportResultSerializer, Files.ExportErrorSerializer> {
+    @discardableResult open func export(path: String, exportFormat: String? = nil, overwrite: Bool = false, destination: @escaping (URL, HTTPURLResponse) -> URL) -> DownloadRequestFile<Files.ExportResultSerializer, Files.ExportErrorSerializer> {
         let route = Files.export
-        let serverArgs = Files.ExportArg(path: path)
+        let serverArgs = Files.ExportArg(path: path, exportFormat: exportFormat)
         return client.request(route, serverArgs: serverArgs, overwrite: overwrite, destination: destination)
     }
 
@@ -405,12 +403,15 @@ open class FilesRoutes {
     /// and whose fileMetadata in ExportResult has exportAs in ExportInfo populated.
     ///
     /// - parameter path: The path of the file to be exported.
+    /// - parameter exportFormat: The file format to which the file should be exported. This must be one of the formats
+    /// listed in the file's export_options returned by getMetadata. If none is specified, the default format (specified
+    /// in export_as in file metadata) will be used.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Files.ExportResult` object on success or a
     /// `Files.ExportError` object on failure.
-    @discardableResult open func export(path: String) -> DownloadRequestMemory<Files.ExportResultSerializer, Files.ExportErrorSerializer> {
+    @discardableResult open func export(path: String, exportFormat: String? = nil) -> DownloadRequestMemory<Files.ExportResultSerializer, Files.ExportErrorSerializer> {
         let route = Files.export
-        let serverArgs = Files.ExportArg(path: path)
+        let serverArgs = Files.ExportArg(path: path, exportFormat: exportFormat)
         return client.request(route, serverArgs: serverArgs)
     }
 
@@ -530,7 +531,8 @@ open class FilesRoutes {
     }
 
     /// Get a thumbnail for an image. This method currently supports files with the following file extensions: jpg,
-    /// jpeg, png, tiff, tif, gif and bmp. Photos that are larger than 20MB in size won't be converted to a thumbnail.
+    /// jpeg, png, tiff, tif, gif, webp, ppm and bmp. Photos that are larger than 20MB in size won't be converted to a
+    /// thumbnail.
     ///
     /// - parameter path: The path to the image file you want to thumbnail.
     /// - parameter format: The format for the thumbnail image, jpeg (default) or png. For  images that are photos, jpeg
@@ -552,7 +554,8 @@ open class FilesRoutes {
     }
 
     /// Get a thumbnail for an image. This method currently supports files with the following file extensions: jpg,
-    /// jpeg, png, tiff, tif, gif and bmp. Photos that are larger than 20MB in size won't be converted to a thumbnail.
+    /// jpeg, png, tiff, tif, gif, webp, ppm and bmp. Photos that are larger than 20MB in size won't be converted to a
+    /// thumbnail.
     ///
     /// - parameter path: The path to the image file you want to thumbnail.
     /// - parameter format: The format for the thumbnail image, jpeg (default) or png. For  images that are photos, jpeg
@@ -568,7 +571,9 @@ open class FilesRoutes {
         return client.request(route, serverArgs: serverArgs)
     }
 
-    /// Get a thumbnail for a file.
+    /// Get a thumbnail for an image. This method currently supports files with the following file extensions: jpg,
+    /// jpeg, png, tiff, tif, gif, webp, ppm and bmp. Photos that are larger than 20MB in size won't be converted to a
+    /// thumbnail.
     ///
     /// - parameter resource: Information specifying which file to preview. This could be a path to a file, a shared
     /// link pointing to a file, or a shared link pointing to a folder, with a relative path.
@@ -590,7 +595,9 @@ open class FilesRoutes {
         return client.request(route, serverArgs: serverArgs, overwrite: overwrite, destination: destination)
     }
 
-    /// Get a thumbnail for a file.
+    /// Get a thumbnail for an image. This method currently supports files with the following file extensions: jpg,
+    /// jpeg, png, tiff, tif, gif, webp, ppm and bmp. Photos that are larger than 20MB in size won't be converted to a
+    /// thumbnail.
     ///
     /// - parameter resource: Information specifying which file to preview. This could be a path to a file, a shared
     /// link pointing to a file, or a shared link pointing to a folder, with a relative path.
@@ -608,8 +615,8 @@ open class FilesRoutes {
     }
 
     /// Get thumbnails for a list of images. We allow up to 25 thumbnails in a single batch. This method currently
-    /// supports files with the following file extensions: jpg, jpeg, png, tiff, tif, gif and bmp. Photos that are
-    /// larger than 20MB in size won't be converted to a thumbnail.
+    /// supports files with the following file extensions: jpg, jpeg, png, tiff, tif, gif, webp, ppm and bmp. Photos
+    /// that are larger than 20MB in size won't be converted to a thumbnail.
     ///
     /// - parameter entries: List of files to get thumbnails.
     ///
@@ -766,8 +773,7 @@ open class FilesRoutes {
     /// Move a file or folder to a different location in the user's Dropbox. If the source path is a folder all its
     /// contents will be moved. Note that we do not currently support case-only renaming.
     ///
-    /// - parameter allowSharedFolder: If true, copy will copy contents in shared folder, otherwise cantCopySharedFolder
-    /// in RelocationError will be returned if fromPath contains shared folder. This field is always true for move.
+    /// - parameter allowSharedFolder: This flag has no effect.
     /// - parameter autorename: If there's a conflict, have the Dropbox server try to autorename the file to avoid the
     /// conflict.
     /// - parameter allowOwnershipTransfer: Allow moves by owner even if it would result in an ownership transfer for
@@ -784,8 +790,7 @@ open class FilesRoutes {
     /// Move a file or folder to a different location in the user's Dropbox. If the source path is a folder all its
     /// contents will be moved.
     ///
-    /// - parameter allowSharedFolder: If true, copy will copy contents in shared folder, otherwise cantCopySharedFolder
-    /// in RelocationError will be returned if fromPath contains shared folder. This field is always true for move.
+    /// - parameter allowSharedFolder: This flag has no effect.
     /// - parameter autorename: If there's a conflict, have the Dropbox server try to autorename the file to avoid the
     /// conflict.
     /// - parameter allowOwnershipTransfer: Allow moves by owner even if it would result in an ownership transfer for
@@ -820,9 +825,7 @@ open class FilesRoutes {
     /// Move multiple files or folders to different locations at once in the user's Dropbox. This route will return job
     /// ID immediately and do the async moving job in background. Please use moveBatchCheck to check the job status.
     ///
-    /// - parameter allowSharedFolder: If true, copyBatch will copy contents in shared folder, otherwise
-    /// cantCopySharedFolder in RelocationError will be returned if fromPath in RelocationPath contains shared folder.
-    /// This field is always true for moveBatch.
+    /// - parameter allowSharedFolder: This flag has no effect.
     /// - parameter allowOwnershipTransfer: Allow moves by owner even if it would result in an ownership transfer for
     /// the content being moved. This does not apply to copies.
     ///
@@ -862,8 +865,109 @@ open class FilesRoutes {
         return client.request(route, serverArgs: serverArgs)
     }
 
-    /// Permanently delete the file or folder at a given path (see https://www.dropbox.com/en/help/40). Note: This
-    /// endpoint is only available for Dropbox Business apps.
+    /// Creates a new Paper doc with the provided content.
+    ///
+    /// - parameter path: The fully qualified path to the location in the user's Dropbox where the Paper Doc should be
+    /// created. This should include the document's title and end with .paper.
+    /// - parameter importFormat: The format of the provided data.
+    /// - parameter input: The file to upload, as an Data object.
+    ///
+    ///  - returns: Through the response callback, the caller will receive a `Files.PaperCreateResult` object on success
+    /// or a `Files.PaperCreateError` object on failure.
+    @discardableResult open func paperCreate(path: String, importFormat: Files.ImportFormat, input: Data) -> UploadRequest<Files.PaperCreateResultSerializer, Files.PaperCreateErrorSerializer> {
+        let route = Files.paperCreate
+        let serverArgs = Files.PaperCreateArg(path: path, importFormat: importFormat)
+        return client.request(route, serverArgs: serverArgs, input: .data(input))
+    }
+
+    /// Creates a new Paper doc with the provided content.
+    ///
+    /// - parameter path: The fully qualified path to the location in the user's Dropbox where the Paper Doc should be
+    /// created. This should include the document's title and end with .paper.
+    /// - parameter importFormat: The format of the provided data.
+    /// - parameter input: The file to upload, as an URL object.
+    ///
+    ///  - returns: Through the response callback, the caller will receive a `Files.PaperCreateResult` object on success
+    /// or a `Files.PaperCreateError` object on failure.
+    @discardableResult open func paperCreate(path: String, importFormat: Files.ImportFormat, input: URL) -> UploadRequest<Files.PaperCreateResultSerializer, Files.PaperCreateErrorSerializer> {
+        let route = Files.paperCreate
+        let serverArgs = Files.PaperCreateArg(path: path, importFormat: importFormat)
+        return client.request(route, serverArgs: serverArgs, input: .file(input))
+    }
+
+    /// Creates a new Paper doc with the provided content.
+    ///
+    /// - parameter path: The fully qualified path to the location in the user's Dropbox where the Paper Doc should be
+    /// created. This should include the document's title and end with .paper.
+    /// - parameter importFormat: The format of the provided data.
+    /// - parameter input: The file to upload, as an InputStream object.
+    ///
+    ///  - returns: Through the response callback, the caller will receive a `Files.PaperCreateResult` object on success
+    /// or a `Files.PaperCreateError` object on failure.
+    @discardableResult open func paperCreate(path: String, importFormat: Files.ImportFormat, input: InputStream) -> UploadRequest<Files.PaperCreateResultSerializer, Files.PaperCreateErrorSerializer> {
+        let route = Files.paperCreate
+        let serverArgs = Files.PaperCreateArg(path: path, importFormat: importFormat)
+        return client.request(route, serverArgs: serverArgs, input: .stream(input))
+    }
+
+    /// Updates an existing Paper doc with the provided content.
+    ///
+    /// - parameter path: Path in the user's Dropbox to update. The path must correspond to a Paper doc or an error will
+    /// be returned.
+    /// - parameter importFormat: The format of the provided data.
+    /// - parameter docUpdatePolicy: How the provided content should be applied to the doc.
+    /// - parameter paperRevision: The latest doc revision. Required when doc_update_policy is update. This value must
+    /// match the current revision of the doc or error revision_mismatch will be returned.
+    /// - parameter input: The file to upload, as an Data object.
+    ///
+    ///  - returns: Through the response callback, the caller will receive a `Files.PaperUpdateResult` object on success
+    /// or a `Files.PaperUpdateError` object on failure.
+    @discardableResult open func paperUpdate(path: String, importFormat: Files.ImportFormat, docUpdatePolicy: Files.PaperDocUpdatePolicy, paperRevision: Int64? = nil, input: Data) -> UploadRequest<Files.PaperUpdateResultSerializer, Files.PaperUpdateErrorSerializer> {
+        let route = Files.paperUpdate
+        let serverArgs = Files.PaperUpdateArg(path: path, importFormat: importFormat, docUpdatePolicy: docUpdatePolicy, paperRevision: paperRevision)
+        return client.request(route, serverArgs: serverArgs, input: .data(input))
+    }
+
+    /// Updates an existing Paper doc with the provided content.
+    ///
+    /// - parameter path: Path in the user's Dropbox to update. The path must correspond to a Paper doc or an error will
+    /// be returned.
+    /// - parameter importFormat: The format of the provided data.
+    /// - parameter docUpdatePolicy: How the provided content should be applied to the doc.
+    /// - parameter paperRevision: The latest doc revision. Required when doc_update_policy is update. This value must
+    /// match the current revision of the doc or error revision_mismatch will be returned.
+    /// - parameter input: The file to upload, as an URL object.
+    ///
+    ///  - returns: Through the response callback, the caller will receive a `Files.PaperUpdateResult` object on success
+    /// or a `Files.PaperUpdateError` object on failure.
+    @discardableResult open func paperUpdate(path: String, importFormat: Files.ImportFormat, docUpdatePolicy: Files.PaperDocUpdatePolicy, paperRevision: Int64? = nil, input: URL) -> UploadRequest<Files.PaperUpdateResultSerializer, Files.PaperUpdateErrorSerializer> {
+        let route = Files.paperUpdate
+        let serverArgs = Files.PaperUpdateArg(path: path, importFormat: importFormat, docUpdatePolicy: docUpdatePolicy, paperRevision: paperRevision)
+        return client.request(route, serverArgs: serverArgs, input: .file(input))
+    }
+
+    /// Updates an existing Paper doc with the provided content.
+    ///
+    /// - parameter path: Path in the user's Dropbox to update. The path must correspond to a Paper doc or an error will
+    /// be returned.
+    /// - parameter importFormat: The format of the provided data.
+    /// - parameter docUpdatePolicy: How the provided content should be applied to the doc.
+    /// - parameter paperRevision: The latest doc revision. Required when doc_update_policy is update. This value must
+    /// match the current revision of the doc or error revision_mismatch will be returned.
+    /// - parameter input: The file to upload, as an InputStream object.
+    ///
+    ///  - returns: Through the response callback, the caller will receive a `Files.PaperUpdateResult` object on success
+    /// or a `Files.PaperUpdateError` object on failure.
+    @discardableResult open func paperUpdate(path: String, importFormat: Files.ImportFormat, docUpdatePolicy: Files.PaperDocUpdatePolicy, paperRevision: Int64? = nil, input: InputStream) -> UploadRequest<Files.PaperUpdateResultSerializer, Files.PaperUpdateErrorSerializer> {
+        let route = Files.paperUpdate
+        let serverArgs = Files.PaperUpdateArg(path: path, importFormat: importFormat, docUpdatePolicy: docUpdatePolicy, paperRevision: paperRevision)
+        return client.request(route, serverArgs: serverArgs, input: .stream(input))
+    }
+
+    /// Permanently delete the file or folder at a given path (see https://www.dropbox.com/en/help/40). If the given
+    /// file or folder is not yet deleted, this route will first delete it. It is possible for this route to
+    /// successfully delete, then fail to permanently delete. Note: This endpoint is only available for Dropbox Business
+    /// apps.
     ///
     /// - parameter path: Path in the user's Dropbox to delete.
     /// - parameter parentRev: Perform delete if given "rev" matches the existing file's latest "rev". This field does
@@ -1028,14 +1132,13 @@ open class FilesRoutes {
     /// delay in indexing. Duplicate results may be returned across pages. Some results may not be returned.
     ///
     /// - parameter query: The string to search for. May match across multiple fields based on the request arguments.
-    /// Query string may be rewritten to improve relevance of results.
     /// - parameter options: Options for more targeted search results.
     /// - parameter matchFieldOptions: Options for search results match fields.
     /// - parameter includeHighlights: Deprecated and moved this option to SearchMatchFieldOptions.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Files.SearchV2Result` object on success or
     /// a `Files.SearchError` object on failure.
-    @discardableResult open func searchV2(query: String, options: Files.SearchOptions? = nil, matchFieldOptions: Files.SearchMatchFieldOptions? = nil, includeHighlights: Bool = false) -> RpcRequest<Files.SearchV2ResultSerializer, Files.SearchErrorSerializer> {
+    @discardableResult open func searchV2(query: String, options: Files.SearchOptions? = nil, matchFieldOptions: Files.SearchMatchFieldOptions? = nil, includeHighlights: Bool? = nil) -> RpcRequest<Files.SearchV2ResultSerializer, Files.SearchErrorSerializer> {
         let route = Files.searchV2
         let serverArgs = Files.SearchV2Arg(query: query, options: options, matchFieldOptions: matchFieldOptions, includeHighlights: includeHighlights)
         return client.request(route, serverArgs: serverArgs)
@@ -1091,7 +1194,8 @@ open class FilesRoutes {
     /// - parameter propertyGroups: List of custom properties to add to file.
     /// - parameter strictConflict: Be more strict about how each WriteMode detects conflict. For example, always return
     /// a conflict error when mode = update in WriteMode and the given "rev" doesn't match the existing file's "rev",
-    /// even if the existing file has been deleted.
+    /// even if the existing file has been deleted. This also forces a conflict even when the target path refers to a
+    /// file with identical contents.
     /// - parameter input: The file to upload, as an Data object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Files.FileMetadata` object on success or a
@@ -1122,7 +1226,8 @@ open class FilesRoutes {
     /// - parameter propertyGroups: List of custom properties to add to file.
     /// - parameter strictConflict: Be more strict about how each WriteMode detects conflict. For example, always return
     /// a conflict error when mode = update in WriteMode and the given "rev" doesn't match the existing file's "rev",
-    /// even if the existing file has been deleted.
+    /// even if the existing file has been deleted. This also forces a conflict even when the target path refers to a
+    /// file with identical contents.
     /// - parameter input: The file to upload, as an URL object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Files.FileMetadata` object on success or a
@@ -1153,7 +1258,8 @@ open class FilesRoutes {
     /// - parameter propertyGroups: List of custom properties to add to file.
     /// - parameter strictConflict: Be more strict about how each WriteMode detects conflict. For example, always return
     /// a conflict error when mode = update in WriteMode and the given "rev" doesn't match the existing file's "rev",
-    /// even if the existing file has been deleted.
+    /// even if the existing file has been deleted. This also forces a conflict even when the target path refers to a
+    /// file with identical contents.
     /// - parameter input: The file to upload, as an InputStream object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Files.FileMetadata` object on success or a
@@ -1228,7 +1334,7 @@ open class FilesRoutes {
     /// https://www.dropbox.com/developers/reference/data-transport-limit.
     ///
     /// - parameter sessionId: The upload session ID (returned by uploadSessionStart).
-    /// - parameter offset: The amount of data that has been uploaded so far. We use this to make sure upload data isn't
+    /// - parameter offset: Offset in bytes at which data should be appended. We use this to make sure upload data isn't
     /// lost or duplicated in the event of a network error.
     /// - parameter input: The file to upload, as an Data object.
     ///
@@ -1248,7 +1354,7 @@ open class FilesRoutes {
     /// https://www.dropbox.com/developers/reference/data-transport-limit.
     ///
     /// - parameter sessionId: The upload session ID (returned by uploadSessionStart).
-    /// - parameter offset: The amount of data that has been uploaded so far. We use this to make sure upload data isn't
+    /// - parameter offset: Offset in bytes at which data should be appended. We use this to make sure upload data isn't
     /// lost or duplicated in the event of a network error.
     /// - parameter input: The file to upload, as an URL object.
     ///
@@ -1268,7 +1374,7 @@ open class FilesRoutes {
     /// https://www.dropbox.com/developers/reference/data-transport-limit.
     ///
     /// - parameter sessionId: The upload session ID (returned by uploadSessionStart).
-    /// - parameter offset: The amount of data that has been uploaded so far. We use this to make sure upload data isn't
+    /// - parameter offset: Offset in bytes at which data should be appended. We use this to make sure upload data isn't
     /// lost or duplicated in the event of a network error.
     /// - parameter input: The file to upload, as an InputStream object.
     ///
@@ -1376,22 +1482,33 @@ open class FilesRoutes {
     /// file is greater than 150 MB.  This call starts a new upload session with the given data. You can then use
     /// uploadSessionAppendV2 to add more data and uploadSessionFinish to save all the data to a file in Dropbox. A
     /// single request should not upload more than 150 MB. The maximum size of a file one can upload to an upload
-    /// session is 350 GB. An upload session can be used for a maximum of 48 hours. Attempting to use an sessionId in
-    /// UploadSessionStartResult with uploadSessionAppendV2 or uploadSessionFinish more than 48 hours after its creation
+    /// session is 350 GB. An upload session can be used for a maximum of 7 days. Attempting to use an sessionId in
+    /// UploadSessionStartResult with uploadSessionAppendV2 or uploadSessionFinish more than 7 days after its creation
     /// will return a notFound in UploadSessionLookupError. Calls to this endpoint will count as data transport calls
     /// for any Dropbox Business teams with a limit on the number of data transport calls allowed per month. For more
     /// information, see the Data transport limit page
-    /// https://www.dropbox.com/developers/reference/data-transport-limit.
+    /// https://www.dropbox.com/developers/reference/data-transport-limit. By default, upload sessions require you to
+    /// send content of the file in sequential order via consecutive uploadSessionStart, uploadSessionAppendV2,
+    /// uploadSessionFinish calls. For better performance, you can instead optionally use a concurrent in
+    /// UploadSessionType upload session. To start a new concurrent session, set sessionType in UploadSessionStartArg to
+    /// concurrent in UploadSessionType. After that, you can send file data in concurrent uploadSessionAppendV2
+    /// requests. Finally finish the session with uploadSessionFinish. There are couple of constraints with concurrent
+    /// sessions to make them work. You can not send data with uploadSessionStart or uploadSessionFinish call, only with
+    /// uploadSessionAppendV2 call. Also data uploaded in uploadSessionAppendV2 call must be multiple of 4194304 bytes
+    /// (except for last uploadSessionAppendV2 with close in UploadSessionStartArg to true, that may contain any
+    /// remaining data).
     ///
     /// - parameter close: If true, the current session will be closed, at which point you won't be able to call
     /// uploadSessionAppendV2 anymore with the current session.
+    /// - parameter sessionType: Type of upload session you want to start. If not specified, default is sequential in
+    /// UploadSessionType.
     /// - parameter input: The file to upload, as an Data object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Files.UploadSessionStartResult` object on
-    /// success or a `Void` object on failure.
-    @discardableResult open func uploadSessionStart(close: Bool = false, input: Data) -> UploadRequest<Files.UploadSessionStartResultSerializer, VoidSerializer> {
+    /// success or a `Files.UploadSessionStartError` object on failure.
+    @discardableResult open func uploadSessionStart(close: Bool = false, sessionType: Files.UploadSessionType? = nil, input: Data) -> UploadRequest<Files.UploadSessionStartResultSerializer, Files.UploadSessionStartErrorSerializer> {
         let route = Files.uploadSessionStart
-        let serverArgs = Files.UploadSessionStartArg(close: close)
+        let serverArgs = Files.UploadSessionStartArg(close: close, sessionType: sessionType)
         return client.request(route, serverArgs: serverArgs, input: .data(input))
     }
 
@@ -1399,22 +1516,33 @@ open class FilesRoutes {
     /// file is greater than 150 MB.  This call starts a new upload session with the given data. You can then use
     /// uploadSessionAppendV2 to add more data and uploadSessionFinish to save all the data to a file in Dropbox. A
     /// single request should not upload more than 150 MB. The maximum size of a file one can upload to an upload
-    /// session is 350 GB. An upload session can be used for a maximum of 48 hours. Attempting to use an sessionId in
-    /// UploadSessionStartResult with uploadSessionAppendV2 or uploadSessionFinish more than 48 hours after its creation
+    /// session is 350 GB. An upload session can be used for a maximum of 7 days. Attempting to use an sessionId in
+    /// UploadSessionStartResult with uploadSessionAppendV2 or uploadSessionFinish more than 7 days after its creation
     /// will return a notFound in UploadSessionLookupError. Calls to this endpoint will count as data transport calls
     /// for any Dropbox Business teams with a limit on the number of data transport calls allowed per month. For more
     /// information, see the Data transport limit page
-    /// https://www.dropbox.com/developers/reference/data-transport-limit.
+    /// https://www.dropbox.com/developers/reference/data-transport-limit. By default, upload sessions require you to
+    /// send content of the file in sequential order via consecutive uploadSessionStart, uploadSessionAppendV2,
+    /// uploadSessionFinish calls. For better performance, you can instead optionally use a concurrent in
+    /// UploadSessionType upload session. To start a new concurrent session, set sessionType in UploadSessionStartArg to
+    /// concurrent in UploadSessionType. After that, you can send file data in concurrent uploadSessionAppendV2
+    /// requests. Finally finish the session with uploadSessionFinish. There are couple of constraints with concurrent
+    /// sessions to make them work. You can not send data with uploadSessionStart or uploadSessionFinish call, only with
+    /// uploadSessionAppendV2 call. Also data uploaded in uploadSessionAppendV2 call must be multiple of 4194304 bytes
+    /// (except for last uploadSessionAppendV2 with close in UploadSessionStartArg to true, that may contain any
+    /// remaining data).
     ///
     /// - parameter close: If true, the current session will be closed, at which point you won't be able to call
     /// uploadSessionAppendV2 anymore with the current session.
+    /// - parameter sessionType: Type of upload session you want to start. If not specified, default is sequential in
+    /// UploadSessionType.
     /// - parameter input: The file to upload, as an URL object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Files.UploadSessionStartResult` object on
-    /// success or a `Void` object on failure.
-    @discardableResult open func uploadSessionStart(close: Bool = false, input: URL) -> UploadRequest<Files.UploadSessionStartResultSerializer, VoidSerializer> {
+    /// success or a `Files.UploadSessionStartError` object on failure.
+    @discardableResult open func uploadSessionStart(close: Bool = false, sessionType: Files.UploadSessionType? = nil, input: URL) -> UploadRequest<Files.UploadSessionStartResultSerializer, Files.UploadSessionStartErrorSerializer> {
         let route = Files.uploadSessionStart
-        let serverArgs = Files.UploadSessionStartArg(close: close)
+        let serverArgs = Files.UploadSessionStartArg(close: close, sessionType: sessionType)
         return client.request(route, serverArgs: serverArgs, input: .file(input))
     }
 
@@ -1422,22 +1550,33 @@ open class FilesRoutes {
     /// file is greater than 150 MB.  This call starts a new upload session with the given data. You can then use
     /// uploadSessionAppendV2 to add more data and uploadSessionFinish to save all the data to a file in Dropbox. A
     /// single request should not upload more than 150 MB. The maximum size of a file one can upload to an upload
-    /// session is 350 GB. An upload session can be used for a maximum of 48 hours. Attempting to use an sessionId in
-    /// UploadSessionStartResult with uploadSessionAppendV2 or uploadSessionFinish more than 48 hours after its creation
+    /// session is 350 GB. An upload session can be used for a maximum of 7 days. Attempting to use an sessionId in
+    /// UploadSessionStartResult with uploadSessionAppendV2 or uploadSessionFinish more than 7 days after its creation
     /// will return a notFound in UploadSessionLookupError. Calls to this endpoint will count as data transport calls
     /// for any Dropbox Business teams with a limit on the number of data transport calls allowed per month. For more
     /// information, see the Data transport limit page
-    /// https://www.dropbox.com/developers/reference/data-transport-limit.
+    /// https://www.dropbox.com/developers/reference/data-transport-limit. By default, upload sessions require you to
+    /// send content of the file in sequential order via consecutive uploadSessionStart, uploadSessionAppendV2,
+    /// uploadSessionFinish calls. For better performance, you can instead optionally use a concurrent in
+    /// UploadSessionType upload session. To start a new concurrent session, set sessionType in UploadSessionStartArg to
+    /// concurrent in UploadSessionType. After that, you can send file data in concurrent uploadSessionAppendV2
+    /// requests. Finally finish the session with uploadSessionFinish. There are couple of constraints with concurrent
+    /// sessions to make them work. You can not send data with uploadSessionStart or uploadSessionFinish call, only with
+    /// uploadSessionAppendV2 call. Also data uploaded in uploadSessionAppendV2 call must be multiple of 4194304 bytes
+    /// (except for last uploadSessionAppendV2 with close in UploadSessionStartArg to true, that may contain any
+    /// remaining data).
     ///
     /// - parameter close: If true, the current session will be closed, at which point you won't be able to call
     /// uploadSessionAppendV2 anymore with the current session.
+    /// - parameter sessionType: Type of upload session you want to start. If not specified, default is sequential in
+    /// UploadSessionType.
     /// - parameter input: The file to upload, as an InputStream object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Files.UploadSessionStartResult` object on
-    /// success or a `Void` object on failure.
-    @discardableResult open func uploadSessionStart(close: Bool = false, input: InputStream) -> UploadRequest<Files.UploadSessionStartResultSerializer, VoidSerializer> {
+    /// success or a `Files.UploadSessionStartError` object on failure.
+    @discardableResult open func uploadSessionStart(close: Bool = false, sessionType: Files.UploadSessionType? = nil, input: InputStream) -> UploadRequest<Files.UploadSessionStartResultSerializer, Files.UploadSessionStartErrorSerializer> {
         let route = Files.uploadSessionStart
-        let serverArgs = Files.UploadSessionStartArg(close: close)
+        let serverArgs = Files.UploadSessionStartArg(close: close, sessionType: sessionType)
         return client.request(route, serverArgs: serverArgs, input: .stream(input))
     }
 
