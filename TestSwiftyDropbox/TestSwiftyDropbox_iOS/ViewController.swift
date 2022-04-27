@@ -23,7 +23,7 @@ class ViewController: UIViewController {
         DropboxClientsManager.authorizeFromControllerV2(UIApplication.shared,
                                                         controller: self,
                                                         loadingStatusDelegate: nil,
-                                                        openURL: {(url: URL) -> Void in UIApplication.shared.open(url, options: [:], completionHandler: nil) },
+                                                        openURL: {(url: URL) -> Void in UIApplication.shared.open(url, options: [:], completionHandler: nil) }, completion: { _ in print("hey")},
                                                         scopeRequest: scopeRequest)
     }
 

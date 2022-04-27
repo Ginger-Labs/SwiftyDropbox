@@ -387,7 +387,7 @@ open class MobileSharedApplication: SharedApplication {
             }
         }
         
-        let safariVC = MobileSafariViewController(url: authURL) { [weak self] svc, didCancel in
+        let safariVC = MobileSafariViewController(url: authURL, cancelHandler: cancelHandler, dismissHandler: { [weak self] svc, didCancel in
             self?.sessionOrViewController = nil
             
             if didCancel {
@@ -395,7 +395,7 @@ open class MobileSharedApplication: SharedApplication {
             } else {
                 svc.dismiss(animated: true, completion: nil)
             }
-        }
+        })
         self.sessionOrViewController = safariVC
         controller.present(safariVC, animated: true, completion: nil)
     }
