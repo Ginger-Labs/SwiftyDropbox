@@ -10,18 +10,25 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
   
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        if (TestData.fullDropboxAppKey.range(of:"<") != nil || TestData.teamMemberFileAccessAppKey.range(of:"<") != nil || TestData.teamMemberManagementAppKey.range(of:"<") != nil) {
+        let processInfo = ProcessInfo.processInfo.environment
+        let inTestScheme = processInfo["FULL_DROPBOX_API_APP_KEY"] != nil
+
+        // Skip setup if launching for unit tests, XCTests set up the clients themselves
+        if inTestScheme {
+            return true
+        }
+
+        if (TestData.fullDropboxAppKey.range(of:"<") != nil) {
             print("\n\n\nMust set test data (in TestData.swift) before launching app.\n\n\nTerminating.....\n\n")
             exit(0);
         }
         switch(appPermission) {
-        case .fullDropbox:
+        case .fullDropboxScoped:
             DropboxClientsManager.setupWithAppKey(TestData.fullDropboxAppKey)
-        case .teamMemberFileAccess:
-            DropboxClientsManager.setupWithTeamAppKey(TestData.teamMemberFileAccessAppKey)
-        case .teamMemberManagement:
-            DropboxClientsManager.setupWithTeamAppKey(TestData.teamMemberManagementAppKey)
+        case .fullDropboxScopedForTeamTesting:
+            DropboxClientsManager.setupWithTeamAppKey(TestData.fullDropboxAppKey)
         }
+
         return true
     }
 
@@ -42,11 +49,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
         let canHandleUrl: Bool
         switch(appPermission) {
-        case .fullDropbox:
+        case .fullDropboxScoped:
             canHandleUrl = DropboxClientsManager.handleRedirectURL(url, completion: oauthCompletion)
-        case .teamMemberFileAccess:
-            canHandleUrl = DropboxClientsManager.handleRedirectURLTeam(url, completion: oauthCompletion)
-        case .teamMemberManagement:
+        case .fullDropboxScopedForTeamTesting:
             canHandleUrl = DropboxClientsManager.handleRedirectURLTeam(url, completion: oauthCompletion)
         }
         return canHandleUrl
