@@ -1,7 +1,7 @@
 use_frameworks!
 
 def shared_iOS_pods
-    platform :ios, '10.0'
+    platform :ios, '11.0'
     pod 'SwiftyDropbox', :path => '../'
 end
 
@@ -23,5 +23,13 @@ target "TestSwiftyDropbox_macOS" do
 end
 
 target "TestSwiftyDropbox_macOSTests" do
+    shared_macOS_pods
+end
+
+target "TestSwiftyDropbox_SwiftUI (iOS)" do
+    shared_iOS_pods
+end
+
+target "TestSwiftyDropbox_SwiftUI (macOS)" do
     shared_macOS_pods
 end

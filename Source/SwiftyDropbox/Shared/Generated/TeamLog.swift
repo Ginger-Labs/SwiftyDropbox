@@ -1096,10 +1096,18 @@ open class TeamLog {
         public let sensitivityLevel: TeamLog.AdminAlertingAlertSensitivity?
         /// Recipient settings.
         public let recipientsSettings: TeamLog.RecipientsConfiguration?
-        public init(alertState: TeamLog.AdminAlertingAlertStatePolicy? = nil, sensitivityLevel: TeamLog.AdminAlertingAlertSensitivity? = nil, recipientsSettings: TeamLog.RecipientsConfiguration? = nil) {
+        /// Text.
+        public let text: String?
+        /// Excluded file extensions.
+        public let excludedFileExtensions: String?
+        public init(alertState: TeamLog.AdminAlertingAlertStatePolicy? = nil, sensitivityLevel: TeamLog.AdminAlertingAlertSensitivity? = nil, recipientsSettings: TeamLog.RecipientsConfiguration? = nil, text: String? = nil, excludedFileExtensions: String? = nil) {
             self.alertState = alertState
             self.sensitivityLevel = sensitivityLevel
             self.recipientsSettings = recipientsSettings
+            nullableValidator(stringValidator())(text)
+            self.text = text
+            nullableValidator(stringValidator())(excludedFileExtensions)
+            self.excludedFileExtensions = excludedFileExtensions
         }
         open var description: String {
             return "\(SerializeUtil.prepareJSONForSerialization(AdminAlertingAlertConfigurationSerializer().serialize(self)))"
@@ -1112,6 +1120,8 @@ open class TeamLog {
             "alert_state": NullableSerializer(TeamLog.AdminAlertingAlertStatePolicySerializer()).serialize(value.alertState),
             "sensitivity_level": NullableSerializer(TeamLog.AdminAlertingAlertSensitivitySerializer()).serialize(value.sensitivityLevel),
             "recipients_settings": NullableSerializer(TeamLog.RecipientsConfigurationSerializer()).serialize(value.recipientsSettings),
+            "text": NullableSerializer(Serialization._StringSerializer).serialize(value.text),
+            "excluded_file_extensions": NullableSerializer(Serialization._StringSerializer).serialize(value.excludedFileExtensions),
             ]
             return .dictionary(output)
         }
@@ -1121,7 +1131,9 @@ open class TeamLog {
                     let alertState = NullableSerializer(TeamLog.AdminAlertingAlertStatePolicySerializer()).deserialize(dict["alert_state"] ?? .null)
                     let sensitivityLevel = NullableSerializer(TeamLog.AdminAlertingAlertSensitivitySerializer()).deserialize(dict["sensitivity_level"] ?? .null)
                     let recipientsSettings = NullableSerializer(TeamLog.RecipientsConfigurationSerializer()).deserialize(dict["recipients_settings"] ?? .null)
-                    return AdminAlertingAlertConfiguration(alertState: alertState, sensitivityLevel: sensitivityLevel, recipientsSettings: recipientsSettings)
+                    let text = NullableSerializer(Serialization._StringSerializer).deserialize(dict["text"] ?? .null)
+                    let excludedFileExtensions = NullableSerializer(Serialization._StringSerializer).deserialize(dict["excluded_file_extensions"] ?? .null)
+                    return AdminAlertingAlertConfiguration(alertState: alertState, sensitivityLevel: sensitivityLevel, recipientsSettings: recipientsSettings, text: text, excludedFileExtensions: excludedFileExtensions)
                 default:
                     fatalError("Type error deserializing")
             }
@@ -1603,6 +1615,131 @@ open class TeamLog {
                             return AdminConsoleAppPolicy.other
                         default:
                             return AdminConsoleAppPolicy.other
+                    }
+                default:
+                    fatalError("Failed to deserialize")
+            }
+        }
+    }
+
+    /// Changed admin reminder settings for requests to join the team.
+    open class AdminEmailRemindersChangedDetails: CustomStringConvertible {
+        /// To.
+        public let newValue: TeamLog.AdminEmailRemindersPolicy
+        /// From.
+        public let previousValue: TeamLog.AdminEmailRemindersPolicy
+        public init(newValue: TeamLog.AdminEmailRemindersPolicy, previousValue: TeamLog.AdminEmailRemindersPolicy) {
+            self.newValue = newValue
+            self.previousValue = previousValue
+        }
+        open var description: String {
+            return "\(SerializeUtil.prepareJSONForSerialization(AdminEmailRemindersChangedDetailsSerializer().serialize(self)))"
+        }
+    }
+    open class AdminEmailRemindersChangedDetailsSerializer: JSONSerializer {
+        public init() { }
+        open func serialize(_ value: AdminEmailRemindersChangedDetails) -> JSON {
+            let output = [ 
+            "new_value": TeamLog.AdminEmailRemindersPolicySerializer().serialize(value.newValue),
+            "previous_value": TeamLog.AdminEmailRemindersPolicySerializer().serialize(value.previousValue),
+            ]
+            return .dictionary(output)
+        }
+        open func deserialize(_ json: JSON) -> AdminEmailRemindersChangedDetails {
+            switch json {
+                case .dictionary(let dict):
+                    let newValue = TeamLog.AdminEmailRemindersPolicySerializer().deserialize(dict["new_value"] ?? .null)
+                    let previousValue = TeamLog.AdminEmailRemindersPolicySerializer().deserialize(dict["previous_value"] ?? .null)
+                    return AdminEmailRemindersChangedDetails(newValue: newValue, previousValue: previousValue)
+                default:
+                    fatalError("Type error deserializing")
+            }
+        }
+    }
+
+    /// The AdminEmailRemindersChangedType struct
+    open class AdminEmailRemindersChangedType: CustomStringConvertible {
+        /// (no description)
+        public let description_: String
+        public init(description_: String) {
+            stringValidator()(description_)
+            self.description_ = description_
+        }
+        open var description: String {
+            return "\(SerializeUtil.prepareJSONForSerialization(AdminEmailRemindersChangedTypeSerializer().serialize(self)))"
+        }
+    }
+    open class AdminEmailRemindersChangedTypeSerializer: JSONSerializer {
+        public init() { }
+        open func serialize(_ value: AdminEmailRemindersChangedType) -> JSON {
+            let output = [ 
+            "description": Serialization._StringSerializer.serialize(value.description_),
+            ]
+            return .dictionary(output)
+        }
+        open func deserialize(_ json: JSON) -> AdminEmailRemindersChangedType {
+            switch json {
+                case .dictionary(let dict):
+                    let description_ = Serialization._StringSerializer.deserialize(dict["description"] ?? .null)
+                    return AdminEmailRemindersChangedType(description_: description_)
+                default:
+                    fatalError("Type error deserializing")
+            }
+        }
+    }
+
+    /// Policy for deciding whether team admins receive reminder emails for requests to join the team
+    public enum AdminEmailRemindersPolicy: CustomStringConvertible {
+        /// An unspecified error.
+        case default_
+        /// An unspecified error.
+        case disabled
+        /// An unspecified error.
+        case enabled
+        /// An unspecified error.
+        case other
+
+        public var description: String {
+            return "\(SerializeUtil.prepareJSONForSerialization(AdminEmailRemindersPolicySerializer().serialize(self)))"
+        }
+    }
+    open class AdminEmailRemindersPolicySerializer: JSONSerializer {
+        public init() { }
+        open func serialize(_ value: AdminEmailRemindersPolicy) -> JSON {
+            switch value {
+                case .default_:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("default")
+                    return .dictionary(d)
+                case .disabled:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("disabled")
+                    return .dictionary(d)
+                case .enabled:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("enabled")
+                    return .dictionary(d)
+                case .other:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("other")
+                    return .dictionary(d)
+            }
+        }
+        open func deserialize(_ json: JSON) -> AdminEmailRemindersPolicy {
+            switch json {
+                case .dictionary(let d):
+                    let tag = Serialization.getTag(d)
+                    switch tag {
+                        case "default":
+                            return AdminEmailRemindersPolicy.default_
+                        case "disabled":
+                            return AdminEmailRemindersPolicy.disabled
+                        case "enabled":
+                            return AdminEmailRemindersPolicy.enabled
+                        case "other":
+                            return AdminEmailRemindersPolicy.other
+                        default:
+                            return AdminEmailRemindersPolicy.other
                     }
                 default:
                     fatalError("Failed to deserialize")
@@ -8717,6 +8854,10 @@ open class TeamLog {
         /// An unspecified error.
         case emmRefreshAuthTokenDetails(TeamLog.EmmRefreshAuthTokenDetails)
         /// An unspecified error.
+        case externalDriveBackupEligibilityStatusCheckedDetails(TeamLog.ExternalDriveBackupEligibilityStatusCheckedDetails)
+        /// An unspecified error.
+        case externalDriveBackupStatusChangedDetails(TeamLog.ExternalDriveBackupStatusChangedDetails)
+        /// An unspecified error.
         case accountCaptureChangeAvailabilityDetails(TeamLog.AccountCaptureChangeAvailabilityDetails)
         /// An unspecified error.
         case accountCaptureMigrateAccountDetails(TeamLog.AccountCaptureMigrateAccountDetails)
@@ -9309,6 +9450,8 @@ open class TeamLog {
         /// An unspecified error.
         case accountCaptureChangePolicyDetails(TeamLog.AccountCaptureChangePolicyDetails)
         /// An unspecified error.
+        case adminEmailRemindersChangedDetails(TeamLog.AdminEmailRemindersChangedDetails)
+        /// An unspecified error.
         case allowDownloadDisabledDetails(TeamLog.AllowDownloadDisabledDetails)
         /// An unspecified error.
         case allowDownloadEnabledDetails(TeamLog.AllowDownloadEnabledDetails)
@@ -9363,6 +9506,8 @@ open class TeamLog {
         /// An unspecified error.
         case fileLockingPolicyChangedDetails(TeamLog.FileLockingPolicyChangedDetails)
         /// An unspecified error.
+        case fileProviderMigrationPolicyChangedDetails(TeamLog.FileProviderMigrationPolicyChangedDetails)
+        /// An unspecified error.
         case fileRequestsChangePolicyDetails(TeamLog.FileRequestsChangePolicyDetails)
         /// An unspecified error.
         case fileRequestsEmailsEnabledDetails(TeamLog.FileRequestsEmailsEnabledDetails)
@@ -9370,6 +9515,8 @@ open class TeamLog {
         case fileRequestsEmailsRestrictedToTeamOnlyDetails(TeamLog.FileRequestsEmailsRestrictedToTeamOnlyDetails)
         /// An unspecified error.
         case fileTransfersPolicyChangedDetails(TeamLog.FileTransfersPolicyChangedDetails)
+        /// An unspecified error.
+        case folderLinkRestrictionPolicyChangedDetails(TeamLog.FolderLinkRestrictionPolicyChangedDetails)
         /// An unspecified error.
         case googleSsoChangePolicyDetails(TeamLog.GoogleSsoChangePolicyDetails)
         /// An unspecified error.
@@ -9796,6 +9943,14 @@ open class TeamLog {
                 case .emmRefreshAuthTokenDetails(let arg):
                     var d = Serialization.getFields(TeamLog.EmmRefreshAuthTokenDetailsSerializer().serialize(arg))
                     d[".tag"] = .str("emm_refresh_auth_token_details")
+                    return .dictionary(d)
+                case .externalDriveBackupEligibilityStatusCheckedDetails(let arg):
+                    var d = Serialization.getFields(TeamLog.ExternalDriveBackupEligibilityStatusCheckedDetailsSerializer().serialize(arg))
+                    d[".tag"] = .str("external_drive_backup_eligibility_status_checked_details")
+                    return .dictionary(d)
+                case .externalDriveBackupStatusChangedDetails(let arg):
+                    var d = Serialization.getFields(TeamLog.ExternalDriveBackupStatusChangedDetailsSerializer().serialize(arg))
+                    d[".tag"] = .str("external_drive_backup_status_changed_details")
                     return .dictionary(d)
                 case .accountCaptureChangeAvailabilityDetails(let arg):
                     var d = Serialization.getFields(TeamLog.AccountCaptureChangeAvailabilityDetailsSerializer().serialize(arg))
@@ -10981,6 +11136,10 @@ open class TeamLog {
                     var d = Serialization.getFields(TeamLog.AccountCaptureChangePolicyDetailsSerializer().serialize(arg))
                     d[".tag"] = .str("account_capture_change_policy_details")
                     return .dictionary(d)
+                case .adminEmailRemindersChangedDetails(let arg):
+                    var d = Serialization.getFields(TeamLog.AdminEmailRemindersChangedDetailsSerializer().serialize(arg))
+                    d[".tag"] = .str("admin_email_reminders_changed_details")
+                    return .dictionary(d)
                 case .allowDownloadDisabledDetails(let arg):
                     var d = Serialization.getFields(TeamLog.AllowDownloadDisabledDetailsSerializer().serialize(arg))
                     d[".tag"] = .str("allow_download_disabled_details")
@@ -11089,6 +11248,10 @@ open class TeamLog {
                     var d = Serialization.getFields(TeamLog.FileLockingPolicyChangedDetailsSerializer().serialize(arg))
                     d[".tag"] = .str("file_locking_policy_changed_details")
                     return .dictionary(d)
+                case .fileProviderMigrationPolicyChangedDetails(let arg):
+                    var d = Serialization.getFields(TeamLog.FileProviderMigrationPolicyChangedDetailsSerializer().serialize(arg))
+                    d[".tag"] = .str("file_provider_migration_policy_changed_details")
+                    return .dictionary(d)
                 case .fileRequestsChangePolicyDetails(let arg):
                     var d = Serialization.getFields(TeamLog.FileRequestsChangePolicyDetailsSerializer().serialize(arg))
                     d[".tag"] = .str("file_requests_change_policy_details")
@@ -11104,6 +11267,10 @@ open class TeamLog {
                 case .fileTransfersPolicyChangedDetails(let arg):
                     var d = Serialization.getFields(TeamLog.FileTransfersPolicyChangedDetailsSerializer().serialize(arg))
                     d[".tag"] = .str("file_transfers_policy_changed_details")
+                    return .dictionary(d)
+                case .folderLinkRestrictionPolicyChangedDetails(let arg):
+                    var d = Serialization.getFields(TeamLog.FolderLinkRestrictionPolicyChangedDetailsSerializer().serialize(arg))
+                    d[".tag"] = .str("folder_link_restriction_policy_changed_details")
                     return .dictionary(d)
                 case .googleSsoChangePolicyDetails(let arg):
                     var d = Serialization.getFields(TeamLog.GoogleSsoChangePolicyDetailsSerializer().serialize(arg))
@@ -11673,6 +11840,12 @@ open class TeamLog {
                         case "emm_refresh_auth_token_details":
                             let v = TeamLog.EmmRefreshAuthTokenDetailsSerializer().deserialize(json)
                             return EventDetails.emmRefreshAuthTokenDetails(v)
+                        case "external_drive_backup_eligibility_status_checked_details":
+                            let v = TeamLog.ExternalDriveBackupEligibilityStatusCheckedDetailsSerializer().deserialize(json)
+                            return EventDetails.externalDriveBackupEligibilityStatusCheckedDetails(v)
+                        case "external_drive_backup_status_changed_details":
+                            let v = TeamLog.ExternalDriveBackupStatusChangedDetailsSerializer().deserialize(json)
+                            return EventDetails.externalDriveBackupStatusChangedDetails(v)
                         case "account_capture_change_availability_details":
                             let v = TeamLog.AccountCaptureChangeAvailabilityDetailsSerializer().deserialize(json)
                             return EventDetails.accountCaptureChangeAvailabilityDetails(v)
@@ -12561,6 +12734,9 @@ open class TeamLog {
                         case "account_capture_change_policy_details":
                             let v = TeamLog.AccountCaptureChangePolicyDetailsSerializer().deserialize(json)
                             return EventDetails.accountCaptureChangePolicyDetails(v)
+                        case "admin_email_reminders_changed_details":
+                            let v = TeamLog.AdminEmailRemindersChangedDetailsSerializer().deserialize(json)
+                            return EventDetails.adminEmailRemindersChangedDetails(v)
                         case "allow_download_disabled_details":
                             let v = TeamLog.AllowDownloadDisabledDetailsSerializer().deserialize(json)
                             return EventDetails.allowDownloadDisabledDetails(v)
@@ -12642,6 +12818,9 @@ open class TeamLog {
                         case "file_locking_policy_changed_details":
                             let v = TeamLog.FileLockingPolicyChangedDetailsSerializer().deserialize(json)
                             return EventDetails.fileLockingPolicyChangedDetails(v)
+                        case "file_provider_migration_policy_changed_details":
+                            let v = TeamLog.FileProviderMigrationPolicyChangedDetailsSerializer().deserialize(json)
+                            return EventDetails.fileProviderMigrationPolicyChangedDetails(v)
                         case "file_requests_change_policy_details":
                             let v = TeamLog.FileRequestsChangePolicyDetailsSerializer().deserialize(json)
                             return EventDetails.fileRequestsChangePolicyDetails(v)
@@ -12654,6 +12833,9 @@ open class TeamLog {
                         case "file_transfers_policy_changed_details":
                             let v = TeamLog.FileTransfersPolicyChangedDetailsSerializer().deserialize(json)
                             return EventDetails.fileTransfersPolicyChangedDetails(v)
+                        case "folder_link_restriction_policy_changed_details":
+                            let v = TeamLog.FolderLinkRestrictionPolicyChangedDetailsSerializer().deserialize(json)
+                            return EventDetails.folderLinkRestrictionPolicyChangedDetails(v)
                         case "google_sso_change_policy_details":
                             let v = TeamLog.GoogleSsoChangePolicyDetailsSerializer().deserialize(json)
                             return EventDetails.googleSsoChangePolicyDetails(v)
@@ -13071,6 +13253,10 @@ open class TeamLog {
         case dropboxPasswordsNewDeviceEnrolled(TeamLog.DropboxPasswordsNewDeviceEnrolledType)
         /// (devices) Refreshed auth token used for setting up EMM
         case emmRefreshAuthToken(TeamLog.EmmRefreshAuthTokenType)
+        /// (devices) Checked external drive backup eligibility status
+        case externalDriveBackupEligibilityStatusChecked(TeamLog.ExternalDriveBackupEligibilityStatusCheckedType)
+        /// (devices) Modified external drive backup
+        case externalDriveBackupStatusChanged(TeamLog.ExternalDriveBackupStatusChangedType)
         /// (domains) Granted/revoked option to enable account capture on team domains
         case accountCaptureChangeAvailability(TeamLog.AccountCaptureChangeAvailabilityType)
         /// (domains) Account-captured user migrated account to team
@@ -13665,6 +13851,8 @@ open class TeamLog {
         case teamSelectiveSyncSettingsChanged(TeamLog.TeamSelectiveSyncSettingsChangedType)
         /// (team_policies) Changed account capture setting on team domain
         case accountCaptureChangePolicy(TeamLog.AccountCaptureChangePolicyType)
+        /// (team_policies) Changed admin reminder settings for requests to join the team
+        case adminEmailRemindersChanged(TeamLog.AdminEmailRemindersChangedType)
         /// (team_policies) Disabled downloads (deprecated, no longer logged)
         case allowDownloadDisabled(TeamLog.AllowDownloadDisabledType)
         /// (team_policies) Enabled downloads (deprecated, no longer logged)
@@ -13719,6 +13907,8 @@ open class TeamLog {
         case fileCommentsChangePolicy(TeamLog.FileCommentsChangePolicyType)
         /// (team_policies) Changed file locking policy for team
         case fileLockingPolicyChanged(TeamLog.FileLockingPolicyChangedType)
+        /// (team_policies) Changed File Provider Migration policy for team
+        case fileProviderMigrationPolicyChanged(TeamLog.FileProviderMigrationPolicyChangedType)
         /// (team_policies) Enabled/disabled file requests
         case fileRequestsChangePolicy(TeamLog.FileRequestsChangePolicyType)
         /// (team_policies) Enabled file request emails for everyone (deprecated, no longer logged)
@@ -13727,6 +13917,8 @@ open class TeamLog {
         case fileRequestsEmailsRestrictedToTeamOnly(TeamLog.FileRequestsEmailsRestrictedToTeamOnlyType)
         /// (team_policies) Changed file transfers policy for team
         case fileTransfersPolicyChanged(TeamLog.FileTransfersPolicyChangedType)
+        /// (team_policies) Changed folder link restrictions policy for team
+        case folderLinkRestrictionPolicyChanged(TeamLog.FolderLinkRestrictionPolicyChangedType)
         /// (team_policies) Enabled/disabled Google single sign-on for team
         case googleSsoChangePolicy(TeamLog.GoogleSsoChangePolicyType)
         /// (team_policies) Changed who can create groups
@@ -14158,6 +14350,14 @@ open class TeamLog {
                 case .emmRefreshAuthToken(let arg):
                     var d = Serialization.getFields(TeamLog.EmmRefreshAuthTokenTypeSerializer().serialize(arg))
                     d[".tag"] = .str("emm_refresh_auth_token")
+                    return .dictionary(d)
+                case .externalDriveBackupEligibilityStatusChecked(let arg):
+                    var d = Serialization.getFields(TeamLog.ExternalDriveBackupEligibilityStatusCheckedTypeSerializer().serialize(arg))
+                    d[".tag"] = .str("external_drive_backup_eligibility_status_checked")
+                    return .dictionary(d)
+                case .externalDriveBackupStatusChanged(let arg):
+                    var d = Serialization.getFields(TeamLog.ExternalDriveBackupStatusChangedTypeSerializer().serialize(arg))
+                    d[".tag"] = .str("external_drive_backup_status_changed")
                     return .dictionary(d)
                 case .accountCaptureChangeAvailability(let arg):
                     var d = Serialization.getFields(TeamLog.AccountCaptureChangeAvailabilityTypeSerializer().serialize(arg))
@@ -15343,6 +15543,10 @@ open class TeamLog {
                     var d = Serialization.getFields(TeamLog.AccountCaptureChangePolicyTypeSerializer().serialize(arg))
                     d[".tag"] = .str("account_capture_change_policy")
                     return .dictionary(d)
+                case .adminEmailRemindersChanged(let arg):
+                    var d = Serialization.getFields(TeamLog.AdminEmailRemindersChangedTypeSerializer().serialize(arg))
+                    d[".tag"] = .str("admin_email_reminders_changed")
+                    return .dictionary(d)
                 case .allowDownloadDisabled(let arg):
                     var d = Serialization.getFields(TeamLog.AllowDownloadDisabledTypeSerializer().serialize(arg))
                     d[".tag"] = .str("allow_download_disabled")
@@ -15451,6 +15655,10 @@ open class TeamLog {
                     var d = Serialization.getFields(TeamLog.FileLockingPolicyChangedTypeSerializer().serialize(arg))
                     d[".tag"] = .str("file_locking_policy_changed")
                     return .dictionary(d)
+                case .fileProviderMigrationPolicyChanged(let arg):
+                    var d = Serialization.getFields(TeamLog.FileProviderMigrationPolicyChangedTypeSerializer().serialize(arg))
+                    d[".tag"] = .str("file_provider_migration_policy_changed")
+                    return .dictionary(d)
                 case .fileRequestsChangePolicy(let arg):
                     var d = Serialization.getFields(TeamLog.FileRequestsChangePolicyTypeSerializer().serialize(arg))
                     d[".tag"] = .str("file_requests_change_policy")
@@ -15466,6 +15674,10 @@ open class TeamLog {
                 case .fileTransfersPolicyChanged(let arg):
                     var d = Serialization.getFields(TeamLog.FileTransfersPolicyChangedTypeSerializer().serialize(arg))
                     d[".tag"] = .str("file_transfers_policy_changed")
+                    return .dictionary(d)
+                case .folderLinkRestrictionPolicyChanged(let arg):
+                    var d = Serialization.getFields(TeamLog.FolderLinkRestrictionPolicyChangedTypeSerializer().serialize(arg))
+                    d[".tag"] = .str("folder_link_restriction_policy_changed")
                     return .dictionary(d)
                 case .googleSsoChangePolicy(let arg):
                     var d = Serialization.getFields(TeamLog.GoogleSsoChangePolicyTypeSerializer().serialize(arg))
@@ -16031,6 +16243,12 @@ open class TeamLog {
                         case "emm_refresh_auth_token":
                             let v = TeamLog.EmmRefreshAuthTokenTypeSerializer().deserialize(json)
                             return EventType.emmRefreshAuthToken(v)
+                        case "external_drive_backup_eligibility_status_checked":
+                            let v = TeamLog.ExternalDriveBackupEligibilityStatusCheckedTypeSerializer().deserialize(json)
+                            return EventType.externalDriveBackupEligibilityStatusChecked(v)
+                        case "external_drive_backup_status_changed":
+                            let v = TeamLog.ExternalDriveBackupStatusChangedTypeSerializer().deserialize(json)
+                            return EventType.externalDriveBackupStatusChanged(v)
                         case "account_capture_change_availability":
                             let v = TeamLog.AccountCaptureChangeAvailabilityTypeSerializer().deserialize(json)
                             return EventType.accountCaptureChangeAvailability(v)
@@ -16919,6 +17137,9 @@ open class TeamLog {
                         case "account_capture_change_policy":
                             let v = TeamLog.AccountCaptureChangePolicyTypeSerializer().deserialize(json)
                             return EventType.accountCaptureChangePolicy(v)
+                        case "admin_email_reminders_changed":
+                            let v = TeamLog.AdminEmailRemindersChangedTypeSerializer().deserialize(json)
+                            return EventType.adminEmailRemindersChanged(v)
                         case "allow_download_disabled":
                             let v = TeamLog.AllowDownloadDisabledTypeSerializer().deserialize(json)
                             return EventType.allowDownloadDisabled(v)
@@ -17000,6 +17221,9 @@ open class TeamLog {
                         case "file_locking_policy_changed":
                             let v = TeamLog.FileLockingPolicyChangedTypeSerializer().deserialize(json)
                             return EventType.fileLockingPolicyChanged(v)
+                        case "file_provider_migration_policy_changed":
+                            let v = TeamLog.FileProviderMigrationPolicyChangedTypeSerializer().deserialize(json)
+                            return EventType.fileProviderMigrationPolicyChanged(v)
                         case "file_requests_change_policy":
                             let v = TeamLog.FileRequestsChangePolicyTypeSerializer().deserialize(json)
                             return EventType.fileRequestsChangePolicy(v)
@@ -17012,6 +17236,9 @@ open class TeamLog {
                         case "file_transfers_policy_changed":
                             let v = TeamLog.FileTransfersPolicyChangedTypeSerializer().deserialize(json)
                             return EventType.fileTransfersPolicyChanged(v)
+                        case "folder_link_restriction_policy_changed":
+                            let v = TeamLog.FolderLinkRestrictionPolicyChangedTypeSerializer().deserialize(json)
+                            return EventType.folderLinkRestrictionPolicyChanged(v)
                         case "google_sso_change_policy":
                             let v = TeamLog.GoogleSsoChangePolicyTypeSerializer().deserialize(json)
                             return EventType.googleSsoChangePolicy(v)
@@ -17426,6 +17653,10 @@ open class TeamLog {
         case dropboxPasswordsNewDeviceEnrolled
         /// (devices) Refreshed auth token used for setting up EMM
         case emmRefreshAuthToken
+        /// (devices) Checked external drive backup eligibility status
+        case externalDriveBackupEligibilityStatusChecked
+        /// (devices) Modified external drive backup
+        case externalDriveBackupStatusChanged
         /// (domains) Granted/revoked option to enable account capture on team domains
         case accountCaptureChangeAvailability
         /// (domains) Account-captured user migrated account to team
@@ -18020,6 +18251,8 @@ open class TeamLog {
         case teamSelectiveSyncSettingsChanged
         /// (team_policies) Changed account capture setting on team domain
         case accountCaptureChangePolicy
+        /// (team_policies) Changed admin reminder settings for requests to join the team
+        case adminEmailRemindersChanged
         /// (team_policies) Disabled downloads (deprecated, no longer logged)
         case allowDownloadDisabled
         /// (team_policies) Enabled downloads (deprecated, no longer logged)
@@ -18074,6 +18307,8 @@ open class TeamLog {
         case fileCommentsChangePolicy
         /// (team_policies) Changed file locking policy for team
         case fileLockingPolicyChanged
+        /// (team_policies) Changed File Provider Migration policy for team
+        case fileProviderMigrationPolicyChanged
         /// (team_policies) Enabled/disabled file requests
         case fileRequestsChangePolicy
         /// (team_policies) Enabled file request emails for everyone (deprecated, no longer logged)
@@ -18082,6 +18317,8 @@ open class TeamLog {
         case fileRequestsEmailsRestrictedToTeamOnly
         /// (team_policies) Changed file transfers policy for team
         case fileTransfersPolicyChanged
+        /// (team_policies) Changed folder link restrictions policy for team
+        case folderLinkRestrictionPolicyChanged
         /// (team_policies) Enabled/disabled Google single sign-on for team
         case googleSsoChangePolicy
         /// (team_policies) Changed who can create groups
@@ -18513,6 +18750,14 @@ open class TeamLog {
                 case .emmRefreshAuthToken:
                     var d = [String: JSON]()
                     d[".tag"] = .str("emm_refresh_auth_token")
+                    return .dictionary(d)
+                case .externalDriveBackupEligibilityStatusChecked:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("external_drive_backup_eligibility_status_checked")
+                    return .dictionary(d)
+                case .externalDriveBackupStatusChanged:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("external_drive_backup_status_changed")
                     return .dictionary(d)
                 case .accountCaptureChangeAvailability:
                     var d = [String: JSON]()
@@ -19698,6 +19943,10 @@ open class TeamLog {
                     var d = [String: JSON]()
                     d[".tag"] = .str("account_capture_change_policy")
                     return .dictionary(d)
+                case .adminEmailRemindersChanged:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("admin_email_reminders_changed")
+                    return .dictionary(d)
                 case .allowDownloadDisabled:
                     var d = [String: JSON]()
                     d[".tag"] = .str("allow_download_disabled")
@@ -19806,6 +20055,10 @@ open class TeamLog {
                     var d = [String: JSON]()
                     d[".tag"] = .str("file_locking_policy_changed")
                     return .dictionary(d)
+                case .fileProviderMigrationPolicyChanged:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("file_provider_migration_policy_changed")
+                    return .dictionary(d)
                 case .fileRequestsChangePolicy:
                     var d = [String: JSON]()
                     d[".tag"] = .str("file_requests_change_policy")
@@ -19821,6 +20074,10 @@ open class TeamLog {
                 case .fileTransfersPolicyChanged:
                     var d = [String: JSON]()
                     d[".tag"] = .str("file_transfers_policy_changed")
+                    return .dictionary(d)
+                case .folderLinkRestrictionPolicyChanged:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("folder_link_restriction_policy_changed")
                     return .dictionary(d)
                 case .googleSsoChangePolicy:
                     var d = [String: JSON]()
@@ -20331,6 +20588,10 @@ open class TeamLog {
                             return EventTypeArg.dropboxPasswordsNewDeviceEnrolled
                         case "emm_refresh_auth_token":
                             return EventTypeArg.emmRefreshAuthToken
+                        case "external_drive_backup_eligibility_status_checked":
+                            return EventTypeArg.externalDriveBackupEligibilityStatusChecked
+                        case "external_drive_backup_status_changed":
+                            return EventTypeArg.externalDriveBackupStatusChanged
                         case "account_capture_change_availability":
                             return EventTypeArg.accountCaptureChangeAvailability
                         case "account_capture_migrate_account":
@@ -20923,6 +21184,8 @@ open class TeamLog {
                             return EventTypeArg.teamSelectiveSyncSettingsChanged
                         case "account_capture_change_policy":
                             return EventTypeArg.accountCaptureChangePolicy
+                        case "admin_email_reminders_changed":
+                            return EventTypeArg.adminEmailRemindersChanged
                         case "allow_download_disabled":
                             return EventTypeArg.allowDownloadDisabled
                         case "allow_download_enabled":
@@ -20977,6 +21240,8 @@ open class TeamLog {
                             return EventTypeArg.fileCommentsChangePolicy
                         case "file_locking_policy_changed":
                             return EventTypeArg.fileLockingPolicyChanged
+                        case "file_provider_migration_policy_changed":
+                            return EventTypeArg.fileProviderMigrationPolicyChanged
                         case "file_requests_change_policy":
                             return EventTypeArg.fileRequestsChangePolicy
                         case "file_requests_emails_enabled":
@@ -20985,6 +21250,8 @@ open class TeamLog {
                             return EventTypeArg.fileRequestsEmailsRestrictedToTeamOnly
                         case "file_transfers_policy_changed":
                             return EventTypeArg.fileTransfersPolicyChanged
+                        case "folder_link_restriction_policy_changed":
+                            return EventTypeArg.folderLinkRestrictionPolicyChanged
                         case "google_sso_change_policy":
                             return EventTypeArg.googleSsoChangePolicy
                         case "group_user_management_change_policy":
@@ -21439,6 +21706,129 @@ open class TeamLog {
         }
     }
 
+    /// External Drive Backup eligibility status
+    public enum ExternalDriveBackupEligibilityStatus: CustomStringConvertible {
+        /// An unspecified error.
+        case exceedLicenseCap
+        /// An unspecified error.
+        case success
+        /// An unspecified error.
+        case other
+
+        public var description: String {
+            return "\(SerializeUtil.prepareJSONForSerialization(ExternalDriveBackupEligibilityStatusSerializer().serialize(self)))"
+        }
+    }
+    open class ExternalDriveBackupEligibilityStatusSerializer: JSONSerializer {
+        public init() { }
+        open func serialize(_ value: ExternalDriveBackupEligibilityStatus) -> JSON {
+            switch value {
+                case .exceedLicenseCap:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("exceed_license_cap")
+                    return .dictionary(d)
+                case .success:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("success")
+                    return .dictionary(d)
+                case .other:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("other")
+                    return .dictionary(d)
+            }
+        }
+        open func deserialize(_ json: JSON) -> ExternalDriveBackupEligibilityStatus {
+            switch json {
+                case .dictionary(let d):
+                    let tag = Serialization.getTag(d)
+                    switch tag {
+                        case "exceed_license_cap":
+                            return ExternalDriveBackupEligibilityStatus.exceedLicenseCap
+                        case "success":
+                            return ExternalDriveBackupEligibilityStatus.success
+                        case "other":
+                            return ExternalDriveBackupEligibilityStatus.other
+                        default:
+                            return ExternalDriveBackupEligibilityStatus.other
+                    }
+                default:
+                    fatalError("Failed to deserialize")
+            }
+        }
+    }
+
+    /// Checked external drive backup eligibility status.
+    open class ExternalDriveBackupEligibilityStatusCheckedDetails: CustomStringConvertible {
+        /// Device's session logged information.
+        public let desktopDeviceSessionInfo: TeamLog.DesktopDeviceSessionLogInfo
+        /// Current eligibility status of external drive backup.
+        public let status: TeamLog.ExternalDriveBackupEligibilityStatus
+        /// Total number of valid external drive backup for all the team members.
+        public let numberOfExternalDriveBackup: UInt64
+        public init(desktopDeviceSessionInfo: TeamLog.DesktopDeviceSessionLogInfo, status: TeamLog.ExternalDriveBackupEligibilityStatus, numberOfExternalDriveBackup: UInt64) {
+            self.desktopDeviceSessionInfo = desktopDeviceSessionInfo
+            self.status = status
+            comparableValidator()(numberOfExternalDriveBackup)
+            self.numberOfExternalDriveBackup = numberOfExternalDriveBackup
+        }
+        open var description: String {
+            return "\(SerializeUtil.prepareJSONForSerialization(ExternalDriveBackupEligibilityStatusCheckedDetailsSerializer().serialize(self)))"
+        }
+    }
+    open class ExternalDriveBackupEligibilityStatusCheckedDetailsSerializer: JSONSerializer {
+        public init() { }
+        open func serialize(_ value: ExternalDriveBackupEligibilityStatusCheckedDetails) -> JSON {
+            let output = [ 
+            "desktop_device_session_info": TeamLog.DesktopDeviceSessionLogInfoSerializer().serialize(value.desktopDeviceSessionInfo),
+            "status": TeamLog.ExternalDriveBackupEligibilityStatusSerializer().serialize(value.status),
+            "number_of_external_drive_backup": Serialization._UInt64Serializer.serialize(value.numberOfExternalDriveBackup),
+            ]
+            return .dictionary(output)
+        }
+        open func deserialize(_ json: JSON) -> ExternalDriveBackupEligibilityStatusCheckedDetails {
+            switch json {
+                case .dictionary(let dict):
+                    let desktopDeviceSessionInfo = TeamLog.DesktopDeviceSessionLogInfoSerializer().deserialize(dict["desktop_device_session_info"] ?? .null)
+                    let status = TeamLog.ExternalDriveBackupEligibilityStatusSerializer().deserialize(dict["status"] ?? .null)
+                    let numberOfExternalDriveBackup = Serialization._UInt64Serializer.deserialize(dict["number_of_external_drive_backup"] ?? .null)
+                    return ExternalDriveBackupEligibilityStatusCheckedDetails(desktopDeviceSessionInfo: desktopDeviceSessionInfo, status: status, numberOfExternalDriveBackup: numberOfExternalDriveBackup)
+                default:
+                    fatalError("Type error deserializing")
+            }
+        }
+    }
+
+    /// The ExternalDriveBackupEligibilityStatusCheckedType struct
+    open class ExternalDriveBackupEligibilityStatusCheckedType: CustomStringConvertible {
+        /// (no description)
+        public let description_: String
+        public init(description_: String) {
+            stringValidator()(description_)
+            self.description_ = description_
+        }
+        open var description: String {
+            return "\(SerializeUtil.prepareJSONForSerialization(ExternalDriveBackupEligibilityStatusCheckedTypeSerializer().serialize(self)))"
+        }
+    }
+    open class ExternalDriveBackupEligibilityStatusCheckedTypeSerializer: JSONSerializer {
+        public init() { }
+        open func serialize(_ value: ExternalDriveBackupEligibilityStatusCheckedType) -> JSON {
+            let output = [ 
+            "description": Serialization._StringSerializer.serialize(value.description_),
+            ]
+            return .dictionary(output)
+        }
+        open func deserialize(_ json: JSON) -> ExternalDriveBackupEligibilityStatusCheckedType {
+            switch json {
+                case .dictionary(let dict):
+                    let description_ = Serialization._StringSerializer.deserialize(dict["description"] ?? .null)
+                    return ExternalDriveBackupEligibilityStatusCheckedType(description_: description_)
+                default:
+                    fatalError("Type error deserializing")
+            }
+        }
+    }
+
     /// Policy for controlling team access to external drive backup feature
     public enum ExternalDriveBackupPolicy: CustomStringConvertible {
         /// An unspecified error.
@@ -21558,6 +21948,160 @@ open class TeamLog {
                 case .dictionary(let dict):
                     let description_ = Serialization._StringSerializer.deserialize(dict["description"] ?? .null)
                     return ExternalDriveBackupPolicyChangedType(description_: description_)
+                default:
+                    fatalError("Type error deserializing")
+            }
+        }
+    }
+
+    /// External Drive Backup status
+    public enum ExternalDriveBackupStatus: CustomStringConvertible {
+        /// An unspecified error.
+        case broken
+        /// An unspecified error.
+        case created
+        /// An unspecified error.
+        case createdOrBroken
+        /// An unspecified error.
+        case deleted
+        /// An unspecified error.
+        case empty
+        /// An unspecified error.
+        case unknown
+        /// An unspecified error.
+        case other
+
+        public var description: String {
+            return "\(SerializeUtil.prepareJSONForSerialization(ExternalDriveBackupStatusSerializer().serialize(self)))"
+        }
+    }
+    open class ExternalDriveBackupStatusSerializer: JSONSerializer {
+        public init() { }
+        open func serialize(_ value: ExternalDriveBackupStatus) -> JSON {
+            switch value {
+                case .broken:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("broken")
+                    return .dictionary(d)
+                case .created:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("created")
+                    return .dictionary(d)
+                case .createdOrBroken:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("created_or_broken")
+                    return .dictionary(d)
+                case .deleted:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("deleted")
+                    return .dictionary(d)
+                case .empty:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("empty")
+                    return .dictionary(d)
+                case .unknown:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("unknown")
+                    return .dictionary(d)
+                case .other:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("other")
+                    return .dictionary(d)
+            }
+        }
+        open func deserialize(_ json: JSON) -> ExternalDriveBackupStatus {
+            switch json {
+                case .dictionary(let d):
+                    let tag = Serialization.getTag(d)
+                    switch tag {
+                        case "broken":
+                            return ExternalDriveBackupStatus.broken
+                        case "created":
+                            return ExternalDriveBackupStatus.created
+                        case "created_or_broken":
+                            return ExternalDriveBackupStatus.createdOrBroken
+                        case "deleted":
+                            return ExternalDriveBackupStatus.deleted
+                        case "empty":
+                            return ExternalDriveBackupStatus.empty
+                        case "unknown":
+                            return ExternalDriveBackupStatus.unknown
+                        case "other":
+                            return ExternalDriveBackupStatus.other
+                        default:
+                            return ExternalDriveBackupStatus.other
+                    }
+                default:
+                    fatalError("Failed to deserialize")
+            }
+        }
+    }
+
+    /// Modified external drive backup.
+    open class ExternalDriveBackupStatusChangedDetails: CustomStringConvertible {
+        /// Device's session logged information.
+        public let desktopDeviceSessionInfo: TeamLog.DesktopDeviceSessionLogInfo
+        /// Previous status of this external drive backup.
+        public let previousValue: TeamLog.ExternalDriveBackupStatus
+        /// Next status of this external drive backup.
+        public let newValue: TeamLog.ExternalDriveBackupStatus
+        public init(desktopDeviceSessionInfo: TeamLog.DesktopDeviceSessionLogInfo, previousValue: TeamLog.ExternalDriveBackupStatus, newValue: TeamLog.ExternalDriveBackupStatus) {
+            self.desktopDeviceSessionInfo = desktopDeviceSessionInfo
+            self.previousValue = previousValue
+            self.newValue = newValue
+        }
+        open var description: String {
+            return "\(SerializeUtil.prepareJSONForSerialization(ExternalDriveBackupStatusChangedDetailsSerializer().serialize(self)))"
+        }
+    }
+    open class ExternalDriveBackupStatusChangedDetailsSerializer: JSONSerializer {
+        public init() { }
+        open func serialize(_ value: ExternalDriveBackupStatusChangedDetails) -> JSON {
+            let output = [ 
+            "desktop_device_session_info": TeamLog.DesktopDeviceSessionLogInfoSerializer().serialize(value.desktopDeviceSessionInfo),
+            "previous_value": TeamLog.ExternalDriveBackupStatusSerializer().serialize(value.previousValue),
+            "new_value": TeamLog.ExternalDriveBackupStatusSerializer().serialize(value.newValue),
+            ]
+            return .dictionary(output)
+        }
+        open func deserialize(_ json: JSON) -> ExternalDriveBackupStatusChangedDetails {
+            switch json {
+                case .dictionary(let dict):
+                    let desktopDeviceSessionInfo = TeamLog.DesktopDeviceSessionLogInfoSerializer().deserialize(dict["desktop_device_session_info"] ?? .null)
+                    let previousValue = TeamLog.ExternalDriveBackupStatusSerializer().deserialize(dict["previous_value"] ?? .null)
+                    let newValue = TeamLog.ExternalDriveBackupStatusSerializer().deserialize(dict["new_value"] ?? .null)
+                    return ExternalDriveBackupStatusChangedDetails(desktopDeviceSessionInfo: desktopDeviceSessionInfo, previousValue: previousValue, newValue: newValue)
+                default:
+                    fatalError("Type error deserializing")
+            }
+        }
+    }
+
+    /// The ExternalDriveBackupStatusChangedType struct
+    open class ExternalDriveBackupStatusChangedType: CustomStringConvertible {
+        /// (no description)
+        public let description_: String
+        public init(description_: String) {
+            stringValidator()(description_)
+            self.description_ = description_
+        }
+        open var description: String {
+            return "\(SerializeUtil.prepareJSONForSerialization(ExternalDriveBackupStatusChangedTypeSerializer().serialize(self)))"
+        }
+    }
+    open class ExternalDriveBackupStatusChangedTypeSerializer: JSONSerializer {
+        public init() { }
+        open func serialize(_ value: ExternalDriveBackupStatusChangedType) -> JSON {
+            let output = [ 
+            "description": Serialization._StringSerializer.serialize(value.description_),
+            ]
+            return .dictionary(output)
+        }
+        open func deserialize(_ json: JSON) -> ExternalDriveBackupStatusChangedType {
+            switch json {
+                case .dictionary(let dict):
+                    let description_ = Serialization._StringSerializer.deserialize(dict["description"] ?? .null)
+                    return ExternalDriveBackupStatusChangedType(description_: description_)
                 default:
                     fatalError("Type error deserializing")
             }
@@ -23208,6 +23752,72 @@ open class TeamLog {
         }
     }
 
+    /// Changed File Provider Migration policy for team.
+    open class FileProviderMigrationPolicyChangedDetails: CustomStringConvertible {
+        /// To.
+        public let newValue: TeamPolicies.FileProviderMigrationPolicyState
+        /// From.
+        public let previousValue: TeamPolicies.FileProviderMigrationPolicyState
+        public init(newValue: TeamPolicies.FileProviderMigrationPolicyState, previousValue: TeamPolicies.FileProviderMigrationPolicyState) {
+            self.newValue = newValue
+            self.previousValue = previousValue
+        }
+        open var description: String {
+            return "\(SerializeUtil.prepareJSONForSerialization(FileProviderMigrationPolicyChangedDetailsSerializer().serialize(self)))"
+        }
+    }
+    open class FileProviderMigrationPolicyChangedDetailsSerializer: JSONSerializer {
+        public init() { }
+        open func serialize(_ value: FileProviderMigrationPolicyChangedDetails) -> JSON {
+            let output = [ 
+            "new_value": TeamPolicies.FileProviderMigrationPolicyStateSerializer().serialize(value.newValue),
+            "previous_value": TeamPolicies.FileProviderMigrationPolicyStateSerializer().serialize(value.previousValue),
+            ]
+            return .dictionary(output)
+        }
+        open func deserialize(_ json: JSON) -> FileProviderMigrationPolicyChangedDetails {
+            switch json {
+                case .dictionary(let dict):
+                    let newValue = TeamPolicies.FileProviderMigrationPolicyStateSerializer().deserialize(dict["new_value"] ?? .null)
+                    let previousValue = TeamPolicies.FileProviderMigrationPolicyStateSerializer().deserialize(dict["previous_value"] ?? .null)
+                    return FileProviderMigrationPolicyChangedDetails(newValue: newValue, previousValue: previousValue)
+                default:
+                    fatalError("Type error deserializing")
+            }
+        }
+    }
+
+    /// The FileProviderMigrationPolicyChangedType struct
+    open class FileProviderMigrationPolicyChangedType: CustomStringConvertible {
+        /// (no description)
+        public let description_: String
+        public init(description_: String) {
+            stringValidator()(description_)
+            self.description_ = description_
+        }
+        open var description: String {
+            return "\(SerializeUtil.prepareJSONForSerialization(FileProviderMigrationPolicyChangedTypeSerializer().serialize(self)))"
+        }
+    }
+    open class FileProviderMigrationPolicyChangedTypeSerializer: JSONSerializer {
+        public init() { }
+        open func serialize(_ value: FileProviderMigrationPolicyChangedType) -> JSON {
+            let output = [ 
+            "description": Serialization._StringSerializer.serialize(value.description_),
+            ]
+            return .dictionary(output)
+        }
+        open func deserialize(_ json: JSON) -> FileProviderMigrationPolicyChangedType {
+            switch json {
+                case .dictionary(let dict):
+                    let description_ = Serialization._StringSerializer.deserialize(dict["description"] ?? .null)
+                    return FileProviderMigrationPolicyChangedType(description_: description_)
+                default:
+                    fatalError("Type error deserializing")
+            }
+        }
+    }
+
     /// Renamed files and/or folders.
     open class FileRenameDetails: CustomStringConvertible {
         /// Relocate action details.
@@ -24759,6 +25369,123 @@ open class TeamLog {
                 case .dictionary(let dict):
                     let description_ = Serialization._StringSerializer.deserialize(dict["description"] ?? .null)
                     return FileUnresolveCommentType(description_: description_)
+                default:
+                    fatalError("Type error deserializing")
+            }
+        }
+    }
+
+    /// Policy for deciding whether applying link restrictions on all team owned folders
+    public enum FolderLinkRestrictionPolicy: CustomStringConvertible {
+        /// An unspecified error.
+        case disabled
+        /// An unspecified error.
+        case enabled
+        /// An unspecified error.
+        case other
+
+        public var description: String {
+            return "\(SerializeUtil.prepareJSONForSerialization(FolderLinkRestrictionPolicySerializer().serialize(self)))"
+        }
+    }
+    open class FolderLinkRestrictionPolicySerializer: JSONSerializer {
+        public init() { }
+        open func serialize(_ value: FolderLinkRestrictionPolicy) -> JSON {
+            switch value {
+                case .disabled:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("disabled")
+                    return .dictionary(d)
+                case .enabled:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("enabled")
+                    return .dictionary(d)
+                case .other:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("other")
+                    return .dictionary(d)
+            }
+        }
+        open func deserialize(_ json: JSON) -> FolderLinkRestrictionPolicy {
+            switch json {
+                case .dictionary(let d):
+                    let tag = Serialization.getTag(d)
+                    switch tag {
+                        case "disabled":
+                            return FolderLinkRestrictionPolicy.disabled
+                        case "enabled":
+                            return FolderLinkRestrictionPolicy.enabled
+                        case "other":
+                            return FolderLinkRestrictionPolicy.other
+                        default:
+                            return FolderLinkRestrictionPolicy.other
+                    }
+                default:
+                    fatalError("Failed to deserialize")
+            }
+        }
+    }
+
+    /// Changed folder link restrictions policy for team.
+    open class FolderLinkRestrictionPolicyChangedDetails: CustomStringConvertible {
+        /// To.
+        public let newValue: TeamLog.FolderLinkRestrictionPolicy
+        /// From.
+        public let previousValue: TeamLog.FolderLinkRestrictionPolicy
+        public init(newValue: TeamLog.FolderLinkRestrictionPolicy, previousValue: TeamLog.FolderLinkRestrictionPolicy) {
+            self.newValue = newValue
+            self.previousValue = previousValue
+        }
+        open var description: String {
+            return "\(SerializeUtil.prepareJSONForSerialization(FolderLinkRestrictionPolicyChangedDetailsSerializer().serialize(self)))"
+        }
+    }
+    open class FolderLinkRestrictionPolicyChangedDetailsSerializer: JSONSerializer {
+        public init() { }
+        open func serialize(_ value: FolderLinkRestrictionPolicyChangedDetails) -> JSON {
+            let output = [ 
+            "new_value": TeamLog.FolderLinkRestrictionPolicySerializer().serialize(value.newValue),
+            "previous_value": TeamLog.FolderLinkRestrictionPolicySerializer().serialize(value.previousValue),
+            ]
+            return .dictionary(output)
+        }
+        open func deserialize(_ json: JSON) -> FolderLinkRestrictionPolicyChangedDetails {
+            switch json {
+                case .dictionary(let dict):
+                    let newValue = TeamLog.FolderLinkRestrictionPolicySerializer().deserialize(dict["new_value"] ?? .null)
+                    let previousValue = TeamLog.FolderLinkRestrictionPolicySerializer().deserialize(dict["previous_value"] ?? .null)
+                    return FolderLinkRestrictionPolicyChangedDetails(newValue: newValue, previousValue: previousValue)
+                default:
+                    fatalError("Type error deserializing")
+            }
+        }
+    }
+
+    /// The FolderLinkRestrictionPolicyChangedType struct
+    open class FolderLinkRestrictionPolicyChangedType: CustomStringConvertible {
+        /// (no description)
+        public let description_: String
+        public init(description_: String) {
+            stringValidator()(description_)
+            self.description_ = description_
+        }
+        open var description: String {
+            return "\(SerializeUtil.prepareJSONForSerialization(FolderLinkRestrictionPolicyChangedTypeSerializer().serialize(self)))"
+        }
+    }
+    open class FolderLinkRestrictionPolicyChangedTypeSerializer: JSONSerializer {
+        public init() { }
+        open func serialize(_ value: FolderLinkRestrictionPolicyChangedType) -> JSON {
+            let output = [ 
+            "description": Serialization._StringSerializer.serialize(value.description_),
+            ]
+            return .dictionary(output)
+        }
+        open func deserialize(_ json: JSON) -> FolderLinkRestrictionPolicyChangedType {
+            switch json {
+                case .dictionary(let dict):
+                    let description_ = Serialization._StringSerializer.deserialize(dict["description"] ?? .null)
+                    return FolderLinkRestrictionPolicyChangedType(description_: description_)
                 default:
                     fatalError("Type error deserializing")
             }
@@ -37373,6 +38100,8 @@ open class TeamLog {
         /// An unspecified error.
         case ukOnly
         /// An unspecified error.
+        case usS3Only
+        /// An unspecified error.
         case other
 
         public var description: String {
@@ -37403,6 +38132,10 @@ open class TeamLog {
                     var d = [String: JSON]()
                     d[".tag"] = .str("uk_only")
                     return .dictionary(d)
+                case .usS3Only:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("us_s3_only")
+                    return .dictionary(d)
                 case .other:
                     var d = [String: JSON]()
                     d[".tag"] = .str("other")
@@ -37424,6 +38157,8 @@ open class TeamLog {
                             return PlacementRestriction.none
                         case "uk_only":
                             return PlacementRestriction.ukOnly
+                        case "us_s3_only":
+                            return PlacementRestriction.usS3Only
                         case "other":
                             return PlacementRestriction.other
                         default:
@@ -48403,6 +49138,8 @@ open class TeamLog {
         /// An unspecified error.
         case full
         /// An unspecified error.
+        case guest
+        /// An unspecified error.
         case other
 
         public var description: String {
@@ -48421,6 +49158,10 @@ open class TeamLog {
                     var d = [String: JSON]()
                     d[".tag"] = .str("full")
                     return .dictionary(d)
+                case .guest:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("guest")
+                    return .dictionary(d)
                 case .other:
                     var d = [String: JSON]()
                     d[".tag"] = .str("other")
@@ -48436,6 +49177,8 @@ open class TeamLog {
                             return TeamMembershipType.free
                         case "full":
                             return TeamMembershipType.full
+                        case "guest":
+                            return TeamMembershipType.guest
                         case "other":
                             return TeamMembershipType.other
                         default:

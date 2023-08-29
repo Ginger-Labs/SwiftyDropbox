@@ -1793,8 +1793,10 @@ open class Sharing {
 
     /// The FileMemberActionIndividualResult union
     public enum FileMemberActionIndividualResult: CustomStringConvertible {
-        /// Member was successfully removed from this file. If AccessLevel is given, the member still has access via a
-        /// parent shared folder.
+        /// Part of the response for both add_file_member and remove_file_member_v1 (deprecated). For add_file_member,
+        /// indicates giving access was successful and at what AccessLevel. For remove_file_member_v1, indicates member
+        /// was successfully removed from the file. If AccessLevel is given, the member still has access via a parent
+        /// shared folder.
         case success(Sharing.AccessLevel?)
         /// User was not able to perform this action.
         case memberError(Sharing.FileMemberActionError)
@@ -1843,9 +1845,18 @@ open class Sharing {
         public let member: Sharing.MemberSelector
         /// The outcome of the action on this member.
         public let result: Sharing.FileMemberActionIndividualResult
-        public init(member: Sharing.MemberSelector, result: Sharing.FileMemberActionIndividualResult) {
+        /// The SHA-1 encrypted shared content key.
+        public let sckeySha1: String?
+        /// The sharing sender-recipient invitation signatures for the input member_id. A member_id can be a group and
+        /// thus have multiple users and multiple invitation signatures.
+        public let invitationSignature: Array<String>?
+        public init(member: Sharing.MemberSelector, result: Sharing.FileMemberActionIndividualResult, sckeySha1: String? = nil, invitationSignature: Array<String>? = nil) {
             self.member = member
             self.result = result
+            nullableValidator(stringValidator())(sckeySha1)
+            self.sckeySha1 = sckeySha1
+            nullableValidator(arrayValidator(itemValidator: stringValidator()))(invitationSignature)
+            self.invitationSignature = invitationSignature
         }
         open var description: String {
             return "\(SerializeUtil.prepareJSONForSerialization(FileMemberActionResultSerializer().serialize(self)))"
@@ -1857,6 +1868,8 @@ open class Sharing {
             let output = [ 
             "member": Sharing.MemberSelectorSerializer().serialize(value.member),
             "result": Sharing.FileMemberActionIndividualResultSerializer().serialize(value.result),
+            "sckey_sha1": NullableSerializer(Serialization._StringSerializer).serialize(value.sckeySha1),
+            "invitation_signature": NullableSerializer(ArraySerializer(Serialization._StringSerializer)).serialize(value.invitationSignature),
             ]
             return .dictionary(output)
         }
@@ -1865,7 +1878,9 @@ open class Sharing {
                 case .dictionary(let dict):
                     let member = Sharing.MemberSelectorSerializer().deserialize(dict["member"] ?? .null)
                     let result = Sharing.FileMemberActionIndividualResultSerializer().deserialize(dict["result"] ?? .null)
-                    return FileMemberActionResult(member: member, result: result)
+                    let sckeySha1 = NullableSerializer(Serialization._StringSerializer).deserialize(dict["sckey_sha1"] ?? .null)
+                    let invitationSignature = NullableSerializer(ArraySerializer(Serialization._StringSerializer)).deserialize(dict["invitation_signature"] ?? .null)
+                    return FileMemberActionResult(member: member, result: result, sckeySha1: sckeySha1, invitationSignature: invitationSignature)
                 default:
                     fatalError("Type error deserializing")
             }
@@ -6211,6 +6226,8 @@ open class Sharing {
         case editor
         /// Request for the maximum access level you can set the link to.
         case max
+        /// Request for the default access level the user has set.
+        case default_
         /// An unspecified error.
         case other
 
@@ -6234,6 +6251,10 @@ open class Sharing {
                     var d = [String: JSON]()
                     d[".tag"] = .str("max")
                     return .dictionary(d)
+                case .default_:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("default")
+                    return .dictionary(d)
                 case .other:
                     var d = [String: JSON]()
                     d[".tag"] = .str("other")
@@ -6251,6 +6272,8 @@ open class Sharing {
                             return RequestedLinkAccessLevel.editor
                         case "max":
                             return RequestedLinkAccessLevel.max
+                        case "default":
+                            return RequestedLinkAccessLevel.default_
                         case "other":
                             return RequestedLinkAccessLevel.other
                         default:
@@ -9146,7 +9169,7 @@ open class Sharing {
         argSerializer: Sharing.GetSharedLinkMetadataArgSerializer(),
         responseSerializer: Sharing.SharedLinkMetadataSerializer(),
         errorSerializer: Sharing.SharedLinkErrorSerializer(),
-        attrs: ["auth": "user",
+        attrs: ["auth": "app, user",
                 "host": "api",
                 "style": "rpc"]
     )

@@ -356,7 +356,8 @@ open class FilesRoutes {
 
     /// Download a folder from the user's Dropbox, as a zip file. The folder must be less than 20 GB in size and any
     /// single file within must be less than 4 GB in size. The resulting zip must have fewer than 10,000 total file and
-    /// folder entries, including the top level folder. The input cannot be a single file.
+    /// folder entries, including the top level folder. The input cannot be a single file. Note: this endpoint does not
+    /// support HTTP range requests.
     ///
     /// - parameter path: The path of the folder to download.
     /// - parameter overwrite: A boolean to set behavior in the event of a naming conflict. `True` will overwrite
@@ -375,7 +376,8 @@ open class FilesRoutes {
 
     /// Download a folder from the user's Dropbox, as a zip file. The folder must be less than 20 GB in size and any
     /// single file within must be less than 4 GB in size. The resulting zip must have fewer than 10,000 total file and
-    /// folder entries, including the top level folder. The input cannot be a single file.
+    /// folder entries, including the top level folder. The input cannot be a single file. Note: this endpoint does not
+    /// support HTTP range requests.
     ///
     /// - parameter path: The path of the folder to download.
     ///
@@ -1172,7 +1174,7 @@ open class FilesRoutes {
     /// than 20 tags can be added to a given item.
     ///
     /// - parameter path: Path to the item to be tagged.
-    /// - parameter tagText: The value of the tag to add.
+    /// - parameter tagText: The value of the tag to add. Will be automatically converted to lowercase letters.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Void` object on success or a
     /// `Files.AddTagError` object on failure.
@@ -1197,7 +1199,7 @@ open class FilesRoutes {
     /// Remove a tag from an item.
     ///
     /// - parameter path: Path to the item to tag.
-    /// - parameter tagText: The tag to remove.
+    /// - parameter tagText: The tag to remove. Will be automatically converted to lowercase letters.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Void` object on success or a
     /// `Files.RemoveTagError` object on failure.
@@ -1635,6 +1637,23 @@ open class FilesRoutes {
         let route = Files.uploadSessionStart
         let serverArgs = Files.UploadSessionStartArg(close: close, sessionType: sessionType, contentHash: contentHash)
         return client.request(route, serverArgs: serverArgs, input: .stream(input))
+    }
+
+    /// This route starts batch of upload_sessions. Please refer to `upload_session/start` usage. Calls to this endpoint
+    /// will count as data transport calls for any Dropbox Business teams with a limit on the number of data transport
+    /// calls allowed per month. For more information, see the Data transport limit page
+    /// https://www.dropbox.com/developers/reference/data-transport-limit.
+    ///
+    /// - parameter sessionType: Type of upload session you want to start. If not specified, default is sequential in
+    /// UploadSessionType.
+    /// - parameter numSessions: The number of upload sessions to start.
+    ///
+    ///  - returns: Through the response callback, the caller will receive a `Files.UploadSessionStartBatchResult`
+    /// object on success or a `Void` object on failure.
+    @discardableResult open func uploadSessionStartBatch(numSessions: UInt64, sessionType: Files.UploadSessionType? = nil) -> RpcRequest<Files.UploadSessionStartBatchResultSerializer, VoidSerializer> {
+        let route = Files.uploadSessionStartBatch
+        let serverArgs = Files.UploadSessionStartBatchArg(numSessions: numSessions, sessionType: sessionType)
+        return client.request(route, serverArgs: serverArgs)
     }
 
 }

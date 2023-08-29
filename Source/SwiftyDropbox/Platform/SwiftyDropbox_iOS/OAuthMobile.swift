@@ -315,9 +315,18 @@ open class MobileSharedApplication: SharedApplication {
     public init(sharedApplication: UIApplication, controller: UIViewController?, openURL: @escaping ((URL) -> Void), completion: @escaping DropboxOAuthCompletion) {
         // fields saved for app-extension safety
         self.sharedApplication = sharedApplication
-        self.controller = controller
         self.openURL = openURL
         self.completion = completion
+
+        if let controller = controller {
+            self.controller = controller
+        } else {
+            if #available(iOS 13, *) {
+                self.controller = sharedApplication.findKeyWindow()?.rootViewController
+            } else {
+                self.controller = sharedApplication.keyWindow?.rootViewController
+            }
+        }
     }
 
     open func presentErrorMessage(_ message: String, title: String) {

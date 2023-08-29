@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name         = 'SwiftyDropbox'
-  s.version      = '8.3.0a'
+  s.version      = '9.2.0a'
   s.summary      = 'Dropbox Swift SDK for API v2'
   s.homepage     = 'https://dropbox.com/developers/'
   s.license      = 'MIT'
@@ -15,7 +15,7 @@ Pod::Spec.new do |s|
   s.swift_version = '5.1'
 
   s.osx.deployment_target = '10.12'
-  s.ios.deployment_target = '10.0'
+  s.ios.deployment_target = '11.0'
 
   s.osx.frameworks = 'AppKit', 'WebKit', 'SystemConfiguration', 'Foundation'
   s.ios.frameworks = 'UIKit', 'WebKit', 'SystemConfiguration', 'Foundation'
