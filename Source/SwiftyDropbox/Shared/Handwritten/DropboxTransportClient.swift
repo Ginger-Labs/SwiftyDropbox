@@ -28,24 +28,34 @@ open class DropboxTransportClient {
         }
     }
 
-    public let manager: SessionManager
-    public let backgroundManager: SessionManager
-    public let longpollManager: SessionManager
+    public let manager: Session
+    public let longpollManager: Session
     public var accessTokenProvider: AccessTokenProvider
     open var selectUser: String?
     open var pathRoot: Common.PathRoot?
     var baseHosts: [String: String]
     var userAgent: String
 
-    public convenience init(accessToken: String, selectUser: String? = nil, pathRoot: Common.PathRoot? = nil) {
-        self.init(accessToken: accessToken, baseHosts: nil, userAgent: nil, selectUser: selectUser, pathRoot: pathRoot)
+    public convenience init(accessToken: String,
+                            selectUser: String? = nil,
+                            pathRoot: Common.PathRoot? = nil) {
+        self.init(accessToken: accessToken,
+                  baseHosts: nil,
+                  userAgent: nil,
+                  selectUser: selectUser,
+                  pathRoot: pathRoot)
     }
 
     public convenience init(
-        accessToken: String, baseHosts: [String: String]?, userAgent: String?, selectUser: String?,
-        sessionDelegate: SessionDelegate? = nil, backgroundSessionDelegate: SessionDelegate? = nil,
-        longpollSessionDelegate: SessionDelegate? = nil, serverTrustPolicyManager: ServerTrustPolicyManager? = nil,
-        sharedContainerIdentifier: String? = nil, pathRoot: Common.PathRoot? = nil
+        accessToken: String,
+        baseHosts: [String: String]?,
+        userAgent: String?,
+        selectUser: String?,
+        sessionDelegate: SessionDelegate? = nil,
+        longpollSessionDelegate: SessionDelegate? = nil,
+        serverTrustPolicyManager: ServerTrustManager? = nil,
+        sharedContainerIdentifier: String? = nil,
+        pathRoot: Common.PathRoot? = nil
     ) {
         self.init(
             accessTokenProvider: LongLivedAccessTokenProvider(accessToken: accessToken),
@@ -53,7 +63,6 @@ open class DropboxTransportClient {
             userAgent: userAgent,
             selectUser: selectUser,
             sessionDelegate: sessionDelegate,
-            backgroundSessionDelegate: backgroundSessionDelegate,
             longpollSessionDelegate: longpollSessionDelegate,
             serverTrustPolicyManager: serverTrustPolicyManager,
             sharedContainerIdentifier: sharedContainerIdentifier,
@@ -71,36 +80,32 @@ open class DropboxTransportClient {
     }
 
     public init(
-        accessTokenProvider: AccessTokenProvider, baseHosts: [String: String]?, userAgent: String?, selectUser: String?,
-        sessionDelegate: SessionDelegate? = nil, backgroundSessionDelegate: SessionDelegate? = nil,
-        longpollSessionDelegate: SessionDelegate? = nil, serverTrustPolicyManager: ServerTrustPolicyManager? = nil,
-        sharedContainerIdentifier: String? = nil, pathRoot: Common.PathRoot? = nil
+        accessTokenProvider: AccessTokenProvider,
+        baseHosts: [String: String]?,
+        userAgent: String?,
+        selectUser: String?,
+        sessionDelegate: SessionDelegate? = nil,
+        longpollSessionDelegate: SessionDelegate? = nil,
+        serverTrustPolicyManager: ServerTrustManager? = nil,
+        sharedContainerIdentifier: String? = nil,
+        pathRoot: Common.PathRoot? = nil
     ) {
         let config = URLSessionConfiguration.default
         let delegate = sessionDelegate ?? SessionDelegate()
         let serverTrustPolicyManager = serverTrustPolicyManager ?? nil
-
-        let manager = SessionManager(configuration: config, delegate: delegate, serverTrustPolicyManager: serverTrustPolicyManager)
-        manager.startRequestsImmediately = false
-
-        let backgroundManager = { () -> SessionManager in
-            let backgroundConfig = URLSessionConfiguration.background(withIdentifier: "com.dropbox.SwiftyDropbox." + UUID().uuidString)
-            if let sharedContainerIdentifier = sharedContainerIdentifier{
-                backgroundConfig.sharedContainerIdentifier = sharedContainerIdentifier
-            }
-            if let backgroundSessionDelegate = backgroundSessionDelegate {
-                return SessionManager(configuration: backgroundConfig, delegate: backgroundSessionDelegate, serverTrustPolicyManager: serverTrustPolicyManager)
-            }
-            return SessionManager(configuration: backgroundConfig, serverTrustPolicyManager: serverTrustPolicyManager)
-        }()
-        backgroundManager.startRequestsImmediately = false
+        let manager = Session(configuration: config,
+                              delegate: delegate,
+                              startRequestsImmediately: false,
+                              serverTrustManager: serverTrustPolicyManager)
 
         let longpollConfig = URLSessionConfiguration.default
         longpollConfig.timeoutIntervalForRequest = 480.0
 
         let longpollSessionDelegate = longpollSessionDelegate ?? SessionDelegate()
 
-        let longpollManager = SessionManager(configuration: longpollConfig, delegate: longpollSessionDelegate, serverTrustPolicyManager: serverTrustPolicyManager)
+        let longpollManager = Session(configuration: longpollConfig,
+                                      delegate: longpollSessionDelegate,
+                                      serverTrustManager: serverTrustPolicyManager)
 
         let defaultBaseHosts = [
             "api": "\(ApiClientConstants.apiHost)/2",
@@ -111,7 +116,6 @@ open class DropboxTransportClient {
         let defaultUserAgent = ApiClientConstants.defaultUserAgent
 
         self.manager = manager
-        self.backgroundManager = backgroundManager
         self.longpollManager = longpollManager
         self.accessTokenProvider = accessTokenProvider
         self.selectUser = selectUser
@@ -157,7 +161,7 @@ open class DropboxTransportClient {
     ) -> DownloadRequestFile<RSerial, ESerial> {
         weak var weakDownloadRequest: DownloadRequestFile<RSerial, ESerial>!
 
-        let destinationWrapper: DownloadRequest.DownloadFileDestination = { url, resp in
+        let destinationWrapper: DownloadRequest.Destination = { url, resp in
             var finalUrl = destination(url, resp)
 
             if 200 ... 299 ~= resp.statusCode {
@@ -238,7 +242,7 @@ open class DropboxTransportClient {
                 headers["Dropbox-Api-Arg"] = value
             }
         }
-        return headers
+        return headers.toHTTPHeaders()
     }
 
     private func createRpcRequest<ASerial, RSerial, ESerial>(
@@ -270,7 +274,7 @@ open class DropboxTransportClient {
 
         let customEncoding = SwiftyArgEncoding(rawJsonRequest: rawJsonRequest!)
 
-        let managerToUse = { () -> SessionManager in
+        let managerToUse = { () -> Session in
             // longpoll requests have a much longer timeout period than other requests
             if type(of: route) ==  type(of: Files.listFolderLongpoll) {
                 return self.longpollManager
@@ -308,7 +312,7 @@ open class DropboxTransportClient {
         case let .data(data):
             request = manager.upload(data, to: url, method: .post, headers: headers)
         case let .file(file):
-            request = backgroundManager.upload(file, to: url, method: .post, headers: headers)
+            request = manager.upload(file, to: url, method: .post, headers: headers)
         case let .stream(stream):
             request = manager.upload(stream, to: url, method: .post, headers: headers)
         }
@@ -319,7 +323,7 @@ open class DropboxTransportClient {
         route: Route<ASerial, RSerial, ESerial>,
         serverArgs: ASerial.ValueType,
         overwrite: Bool,
-        downloadFileDestination: @escaping DownloadRequest.DownloadFileDestination
+        downloadFileDestination: @escaping DownloadRequest.Destination
     ) -> DownloadRequest {
         let host = route.attrs["host"]! ?? "api"
         var routeName = route.name
@@ -331,7 +335,7 @@ open class DropboxTransportClient {
         let jsonRequestObj = route.argSerializer.serialize(serverArgs)
         let rawJsonRequest = SerializeUtil.dumpJSON(jsonRequestObj)
         let headers = getHeaders(routeStyle, jsonRequest: rawJsonRequest, host: host)
-        return backgroundManager.download(url, method: .post, headers: headers, to: downloadFileDestination)
+        return manager.download(url, method: .post, headers: headers, to: downloadFileDestination)
     }
 
     private func createDownloadMemoryRequest<ASerial, RSerial, ESerial>(
@@ -344,7 +348,7 @@ open class DropboxTransportClient {
         let jsonRequestObj = route.argSerializer.serialize(serverArgs)
         let rawJsonRequest = SerializeUtil.dumpJSON(jsonRequestObj)
         let headers = getHeaders(routeStyle, jsonRequest: rawJsonRequest, host: host)
-        return backgroundManager.request(url, method: .post, headers: headers)
+        return manager.request(url, method: .post, headers: headers)
     }
 }
 
@@ -445,16 +449,16 @@ func utf8Decode(_ data: Data) -> String {
 
 func asciiEscape(_ s: String) -> String {
     var out: String = ""
+    out.reserveCapacity(s.maximumLengthOfBytes(using: .utf16))
 
-    for char in s.unicodeScalars {
-        var esc = "\(char)"
-        if !char.isASCII {
-            esc = NSString(format:"\\u%04x", char.value) as String
+    for char in s.utf16 {
+        var esc: String
+        if let unicodeScalar = Unicode.Scalar(char), unicodeScalar.isASCII {
+            esc = "\(unicodeScalar)"
         } else {
-            esc = "\(char)"
+            esc = String(format: "\\u%04x", char)
         }
         out += esc
-
     }
     return out
 }
@@ -478,13 +482,23 @@ public enum UploadBody {
 open class Request<RSerial: JSONSerializer, ESerial: JSONSerializer> {
     let responseSerializer: RSerial
     let errorSerializer: ESerial
+
+    fileprivate let request: ApiRequest
     private var selfRetain: AnyObject?
 
-    init(responseSerializer: RSerial, errorSerializer: ESerial) {
+    init(request: ApiRequest, responseSerializer: RSerial, errorSerializer: ESerial) {
         self.errorSerializer = errorSerializer
         self.responseSerializer = responseSerializer
 
+        self.request = request
         self.selfRetain = self
+        request.setCleanupHandler { [weak self] in
+            self?.cleanupSelfRetain()
+        }
+    }
+
+    public func cancel() {
+        request.cancel()
     }
 
     func handleResponseError(_ response: HTTPURLResponse?, data: Data?, error: Error?) -> CallError<ESerial.ValueType> {
@@ -564,24 +578,13 @@ open class Request<RSerial: JSONSerializer, ESerial: JSONSerializer> {
         return "";
     }
 
-    func cleanupSelfRetain() {
+    private func cleanupSelfRetain() {
         self.selfRetain = nil
     }
 }
 
 /// An "rpc-style" request
 open class RpcRequest<RSerial: JSONSerializer, ESerial: JSONSerializer>: Request<RSerial, ESerial> {
-    private let request: ApiRequest
-
-    init(request: ApiRequest, responseSerializer: RSerial, errorSerializer: ESerial) {
-        self.request = request
-        super.init(responseSerializer: responseSerializer, errorSerializer: errorSerializer)
-    }
-
-    public func cancel() {
-        request.cancel()
-    }
-
     @discardableResult
     public func response(
         queue: DispatchQueue? = nil,
@@ -597,7 +600,6 @@ open class RpcRequest<RSerial: JSONSerializer, ESerial: JSONSerializer>: Request
             } else {
                 completionHandler(strongSelf.responseSerializer.deserialize(SerializeUtil.parseJSON(response.data!)), nil)
             }
-            strongSelf.cleanupSelfRetain()
         }))
         return self
     }
@@ -605,21 +607,10 @@ open class RpcRequest<RSerial: JSONSerializer, ESerial: JSONSerializer>: Request
 
 /// An "upload-style" request
 open class UploadRequest<RSerial: JSONSerializer, ESerial: JSONSerializer>: Request<RSerial, ESerial> {
-    private let request: ApiRequest
-
-    init(request: ApiRequest, responseSerializer: RSerial, errorSerializer: ESerial) {
-        self.request = request
-        super.init(responseSerializer: responseSerializer, errorSerializer: errorSerializer)
-    }
-
     @discardableResult
     public func progress(_ progressHandler: @escaping ((Progress) -> Void)) -> Self {
         request.setProgressHandler(progressHandler)
         return self
-    }
-
-    public func cancel() {
-        request.cancel()
     }
 
     @discardableResult
@@ -637,7 +628,6 @@ open class UploadRequest<RSerial: JSONSerializer, ESerial: JSONSerializer>: Requ
             } else {
                 completionHandler(strongSelf.responseSerializer.deserialize(SerializeUtil.parseJSON(response.data!)), nil)
             }
-            strongSelf.cleanupSelfRetain()
         }))
         return self
     }
@@ -646,25 +636,19 @@ open class UploadRequest<RSerial: JSONSerializer, ESerial: JSONSerializer>: Requ
 
 /// A "download-style" request to a file
 open class DownloadRequestFile<RSerial: JSONSerializer, ESerial: JSONSerializer>: Request<RSerial, ESerial> {
-    private let request: ApiRequest
     var urlPath: URL?
     var errorMessage: Data
 
-    init(request: ApiRequest, responseSerializer: RSerial, errorSerializer: ESerial) {
-        self.request = request
+    override init(request: ApiRequest, responseSerializer: RSerial, errorSerializer: ESerial) {
         urlPath = nil
         errorMessage = Data()
-        super.init(responseSerializer: responseSerializer, errorSerializer: errorSerializer)
+        super.init(request: request, responseSerializer: responseSerializer, errorSerializer: errorSerializer)
     }
 
     @discardableResult
     public func progress(_ progressHandler: @escaping ((Progress) -> Void)) -> Self {
         request.setProgressHandler(progressHandler)
         return self
-    }
-
-    public func cancel() {
-        self.request.cancel()
     }
 
     @discardableResult
@@ -689,7 +673,6 @@ open class DownloadRequestFile<RSerial: JSONSerializer, ESerial: JSONSerializer>
 
                 completionHandler((resultObject, strongSelf.urlPath!), nil)
             }
-            strongSelf.cleanupSelfRetain()
         }))
         return self
     }
@@ -697,21 +680,10 @@ open class DownloadRequestFile<RSerial: JSONSerializer, ESerial: JSONSerializer>
 
 /// A "download-style" request to memory
 open class DownloadRequestMemory<RSerial: JSONSerializer, ESerial: JSONSerializer>: Request<RSerial, ESerial> {
-    private let request: ApiRequest
-
-    init(request: ApiRequest, responseSerializer: RSerial, errorSerializer: ESerial) {
-        self.request = request
-        super.init(responseSerializer: responseSerializer, errorSerializer: errorSerializer)
-    }
-
     @discardableResult
     public func progress(_ progressHandler: @escaping ((Progress) -> Void)) -> Self {
         request.setProgressHandler(progressHandler)
         return self
-    }
-
-    public func cancel() {
-        request.cancel()
     }
 
     @discardableResult
@@ -731,10 +703,11 @@ open class DownloadRequestMemory<RSerial: JSONSerializer, ESerial: JSONSerialize
                 let result = caseInsensitiveLookup("Dropbox-Api-Result", dictionary: headerFields)!
                 let resultData = result.data(using: .utf8, allowLossyConversion: false)
                 let resultObject = strongSelf.responseSerializer.deserialize(SerializeUtil.parseJSON(resultData!))
-
-                completionHandler((resultObject, response.data!), nil)
+                
+                // An empty file can cause the response data to be nil.
+                // If nil is encountered, we convert to an empty Data object.
+                completionHandler((resultObject, response.data ?? Data()), nil)
             }
-            strongSelf.cleanupSelfRetain()
         }))
         return self
     }

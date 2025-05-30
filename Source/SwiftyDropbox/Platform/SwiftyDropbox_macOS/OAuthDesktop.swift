@@ -2,7 +2,7 @@
 /// Copyright (c) 2016 Dropbox, Inc. All rights reserved.
 ///
 
-#if canImport(AppKit)
+#if os(macOS)
 
 import Foundation
 import AppKit
@@ -11,13 +11,19 @@ import WebKit
 extension DropboxClientsManager {
     /// Starts a "token" flow.
     ///
+    /// This method should no longer be used.
+    /// Long-lived access tokens are deprecated. See https://dropbox.tech/developers/migrating-app-permissions-and-access-tokens.
+    /// Please use `authorizeFromControllerV2` instead.
     /// - Parameters:
-    ///     - sharedWorkspace: The shared NSWorkspace instance in your app.
+    ///     - sharedApplication: The shared NSApplication instance in your app.
     ///     - controller: An NSViewController to present the auth flow from. Reference is weakly held.
     ///     - openURL: Handler to open a URL.
-    public static func authorizeFromController(sharedWorkspace: NSWorkspace, controller: NSViewController?, openURL: @escaping ((URL) -> Void)) {
+    @available(*, deprecated, message: "This method was used for long-lived access tokens, which are now deprecated. Please use `authorizeFromControllerV2` instead.")
+    public static func authorizeFromController(sharedApplication: NSApplication,
+                                               controller: NSViewController?,
+                                               openURL: @escaping ((URL) -> Void)) {
         precondition(DropboxOAuthManager.sharedOAuthManager != nil, "Call `DropboxClientsManager.setupWithAppKey` or `DropboxClientsManager.setupWithTeamAppKey` before calling this method")
-        let sharedDesktopApplication = DesktopSharedApplication(sharedWorkspace: sharedWorkspace, controller: controller, openURL: openURL)
+        let sharedDesktopApplication = DesktopSharedApplication(sharedApplication: sharedApplication, controller: controller, openURL: openURL)
         DesktopSharedApplication.sharedDesktopApplication = sharedDesktopApplication
         DropboxOAuthManager.sharedOAuthManager.authorizeFromSharedApplication(sharedDesktopApplication)
     }
@@ -31,7 +37,7 @@ extension DropboxClientsManager {
     /// code_verifier, which is stored inside this SDK.
     ///
     /// - Parameters:
-    ///     - sharedApplication: The shared NSWorkspace instance in your app.
+    ///     - sharedApplication: The shared NSApplication instance in your app.
     ///     - controller: An NSViewController to present the auth flow from. Reference is weakly held.
     ///     - loadingStatusDelegate: An optional delegate to handle loading experience during auth flow.
     ///       e.g. Show a loading spinner and block user interaction while loading/waiting.
@@ -45,16 +51,15 @@ extension DropboxClientsManager {
     ///     API clients set up by `DropboxClientsManager` will get token refresh logic for free.
     ///     If you need to set up `DropboxClient`/`DropboxTeamClient` without `DropboxClientsManager`,
     ///     you will have to set up the clients with an appropriate `AccessTokenProvider`.
-    public static func authorizeFromControllerV2(
-        sharedWorkspace: NSWorkspace,
-        controller: NSViewController?,
-        loadingStatusDelegate: LoadingStatusDelegate?,
-        openURL: @escaping ((URL) -> Void),
-        scopeRequest: ScopeRequest?
+    public static func authorizeFromControllerV2(sharedApplication: NSApplication,
+                                                 controller: NSViewController?,
+                                                 loadingStatusDelegate: LoadingStatusDelegate?,
+                                                 openURL: @escaping ((URL) -> Void),
+                                                 scopeRequest: ScopeRequest?
     ) {
         precondition(DropboxOAuthManager.sharedOAuthManager != nil, "Call `DropboxClientsManager.setupWithAppKey` or `DropboxClientsManager.setupWithTeamAppKey` before calling this method")
         let sharedDesktopApplication =
-            DesktopSharedApplication(sharedWorkspace: sharedWorkspace, controller: controller, openURL: openURL)
+            DesktopSharedApplication(sharedApplication: sharedApplication, controller: controller, openURL: openURL)
         sharedDesktopApplication.loadingStatusDelegate = loadingStatusDelegate
         DesktopSharedApplication.sharedDesktopApplication = sharedDesktopApplication
         DropboxOAuthManager.sharedOAuthManager.authorizeFromSharedApplication(
@@ -85,17 +90,23 @@ extension DropboxClientsManager {
 public class DesktopSharedApplication: SharedApplication {
     public static var sharedDesktopApplication: DesktopSharedApplication?
 
-    let sharedWorkspace: NSWorkspace
+    let sharedApplication: NSApplication
     weak var controller: NSViewController?
     let openURL: ((URL) -> Void)
 
     weak var loadingStatusDelegate: LoadingStatusDelegate?
 
     /// Reference to controller is weakly held.
-    public init(sharedWorkspace: NSWorkspace, controller: NSViewController?, openURL: @escaping ((URL) -> Void)) {
-        self.sharedWorkspace = sharedWorkspace
+    public init(sharedApplication: NSApplication, controller: NSViewController?, openURL: @escaping ((URL) -> Void)) {
+        self.sharedApplication = sharedApplication
         self.controller = controller
         self.openURL = openURL
+
+        if let controller = controller {
+            self.controller = controller
+        } else {
+            self.controller = sharedApplication.keyWindow?.contentViewController
+        }
     }
 
     public func presentErrorMessage(_ message: String, title: String) {

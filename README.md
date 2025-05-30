@@ -44,16 +44,17 @@ Full documentation [here](http://dropbox.github.io/SwiftyDropbox/api-docs/latest
 * [Documentation](#documentation)
 * [Stone](#stone)
 * [Modifications](#modifications)
+* [App Store Connect Privacy Labels](#app-store-connect-privacy-labels)
 * [Bugs](#bugs)
 
 ---
 
 ## System requirements
 
-- iOS 9.0+
-- macOS 10.11+
+- iOS 11.0+
+- macOS 10.12+
 - Xcode 10.0+ (11.0+ if you use Carthage)
-- Swift 5.0+
+- Swift 5.1+
 
 ## Get Started
 
@@ -133,7 +134,7 @@ To install the Dropbox Swift SDK via Carthage, you need to create a `Cartfile` i
 
 ```
 # SwiftyDropbox
-github "https://github.com/dropbox/SwiftyDropbox" ~> 7.0.0
+github "https://github.com/dropbox/SwiftyDropbox" ~> 9.2.0
 ```
 
 Then, run the following command to install the dependency to checkout and build the Dropbox Swift SDK repository:
@@ -218,6 +219,8 @@ To facilitate the above authorization flows, you should take the following steps
 
 From your application delegate:
 
+_SwiftUI note: You may need to create an Application Delegate if your application doesn't have one._
+
 ##### iOS
 
 ```Swift
@@ -244,7 +247,7 @@ func applicationDidFinishLaunching(_ aNotification: Notification) {
 #### Begin the authorization flow
 
 You can commence the auth flow by calling `authorizeFromController:controller:openURL` method in your application's
-view controller. Note that the controller reference will be weakly held.
+view controller. Note that the controller reference will be weakly held. For SwiftUI applications nil can be passed in for the controller argument and the app's root view controller will be used to present the flow.
 
 From your view controller:
 
@@ -254,25 +257,24 @@ From your view controller:
 import SwiftyDropbox
 
 func myButtonInControllerPressed() {
+    // OAuth 2 code flow with PKCE that grants a short-lived token with scopes, and performs refreshes of the token automatically.
+    let scopeRequest = ScopeRequest(scopeType: .user, scopes: ["account_info.read"], includeGrantedScopes: false)
+    DropboxClientsManager.authorizeFromControllerV2(
+        UIApplication.shared,
+        controller: self,
+        loadingStatusDelegate: nil,
+        openURL: { (url: URL) -> Void in UIApplication.shared.open(url, options: [:], completionHandler: nil) },
+        scopeRequest: scopeRequest
+    )
 
-    // Use only one of these two flows at once:
-
-    // Legacy authorization flow that grants a long-lived token.
-    DropboxClientsManager.authorizeFromController(UIApplication.shared,
-                                                  controller: self,
-                                                  openURL: { (url: URL) -> Void in
-                                                    UIApplication.shared.openURL(url)
-                                                  })
-
-  // New: OAuth 2 code flow with PKCE that grants a short-lived token with scopes.
-  let scopeRequest = ScopeRequest(scopeType: .user, scopes: ["account_info.read"], includeGrantedScopes: false)
-  DropboxClientsManager.authorizeFromControllerV2(
-      UIApplication.shared,
-      controller: self,
-      loadingStatusDelegate: nil,
-      openURL: { (url: URL) -> Void in UIApplication.shared.openURL(url) },
-      scopeRequest: scopeRequest
-  )
+    // Note: this is the DEPRECATED authorization flow that grants a long-lived token.
+    // If you are still using this, please update your app to use the `authorizeFromControllerV2` call instead.
+    // See https://dropbox.tech/developers/migrating-app-permissions-and-access-tokens
+    // DropboxClientsManager.authorizeFromController(UIApplication.shared,
+    //                                               controller: self,
+    //                                               openURL: { (url: URL) -> Void in
+    //                                                 UIApplication.shared.open(url, options: [:], completionHandler: nil)
+    //                                               })
 }
 
 ```
@@ -283,25 +285,24 @@ func myButtonInControllerPressed() {
 import SwiftyDropbox
 
 func myButtonInControllerPressed() {
+    // OAuth 2 code flow with PKCE that grants a short-lived token with scopes, and performs refreshes of the token automatically.
+    let scopeRequest = ScopeRequest(scopeType: .user, scopes: ["account_info.read"], includeGrantedScopes: false)
+    DropboxClientsManager.authorizeFromControllerV2(
+        sharedApplication: NSApplication.shared,
+        controller: self,
+        loadingStatusDelegate: nil,
+        openURL: {(url: URL) -> Void in NSWorkspace.shared.open(url)},
+        scopeRequest: scopeRequest
+    )
 
-    // Use only one of these two flows at once:
-
-    // Legacy authorization flow that grants a long-lived token.
-    DropboxClientsManager.authorizeFromController(sharedWorkspace: NSWorkspace.shared,
-                                                  controller: self,
-                                                  openURL: { (url: URL) -> Void in
-                                                    NSWorkspace.shared.open(url)
-                                                  })
-
-  // New: OAuth 2 code flow with PKCE that grants a short-lived token with scopes.
-  let scopeRequest = ScopeRequest(scopeType: .user, scopes: ["account_info.read"], includeGrantedScopes: false)
-  DropboxClientsManager.authorizeFromControllerV2(
-      sharedWorkspace: NSWorkspace.shared,
-      controller: self,
-      loadingStatusDelegate: nil,
-      openURL: {(url: URL) -> Void in NSWorkspace.shared.open(url)},
-      scopeRequest: scopeRequest
-  )
+    // Note: this is the DEPRECATED authorization flow that grants a long-lived token.
+    // If you are still using this, please update your app to use the `authorizeFromControllerV2` call instead.
+    // See https://dropbox.tech/developers/migrating-app-permissions-and-access-tokens
+    // DropboxClientsManager.authorizeFromController(sharedApplication: NSApplication.shared,
+    //                                               controller: self,
+    //                                               openURL: { (url: URL) -> Void in
+    //                                                 NSWorkspace.shared.open(url)
+    //                                               })
 }
 ```
 
@@ -317,6 +318,8 @@ Beginning the authentication flow via in-app webview will launch a window like t
 #### Handle redirect back into SDK
 
 To handle the redirection back into the Swift SDK once the authentication flow is complete, you should add the following code in your application's delegate:
+
+_SwiftUI note: You may need to create an Application Delegate if your application doesn't have one._
 
 ##### iOS
 
@@ -342,6 +345,8 @@ func application(_ app: UIApplication, open url: URL, options: [UIApplication.Op
 
 ```
 Or if your app is iOS13+, or your app also supports Scenes, add the following code into your application's main scene delegate:
+
+Note: You may need to create a Scene Delegate if your application doesn't have one._
 ```Swift
 import SwiftyDropbox
 
@@ -358,9 +363,9 @@ func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>)
           }
       }
     }
-    
+
     for context in URLContexts {
-        // stop iterating after the first handle-able url      
+        // stop iterating after the first handle-able url
         if DropboxClientsManager.handleRedirectURL(context.url, completion: oauthCompletion) { break }
     }
 }
@@ -765,7 +770,7 @@ For most apps, it is reasonable to assume that only one Dropbox account (and acc
 
 The `DropboxClient` (or `DropboxTeamClient`) is then used to make all of the desired API calls.
 
-* call `unlinkClients` to logout Dropbox user and clear all access tokens
+* On `DropboxClientsManager`, call `unlinkClients` to logout Dropbox user and clear all access tokens
 
 #### Multiple Dropbox user case
 
@@ -773,9 +778,11 @@ For some apps, it is necessary to manage more than one Dropbox account (and acce
 
 * access token uids are managed by the app that is integrating with the SDK for later lookup
 * call `setupWithAppKeyMultiUser`/`setupWithAppKeyMultiUserDesktop` (or `setupWithTeamAppKeyMultiUser`/`setupWithTeamAppKeyMultiUserDesktop`) in integrating app's app delegate
+    * _SwiftUI note: You may need to create an Application Delegate if your application doesn't have one._
 * client manager determines whether an access token is stored with the`tokenUid` as a key -- if one exists, this token is chosen to use
 * if no token is found, call `authorizeFromController`/`authorizeFromControllerDesktop` to initiate the OAuth flow
 * if auth flow is initiated, call `handleRedirectURL` (or `handleRedirectURLTeam`) in integrating app's app delegate to handle auth redirect back into the app and store the retrieved access token (using a `DropboxOAuthManager` instance)
+    * _SwiftUI note: You may need to create an Application Delegate if your application doesn't have one._
 * at this point, the app that is integrating with the SDK should persistently save the `tokenUid` from the `DropboxAccessToken` field of the `DropboxOAuthResult` object returned from the `handleRedirectURL` (or `handleRedirectURLTeam`) method
 * `tokenUid` can be reused either to authorize a new user mid-way through an app's lifecycle via `reauthorizeClient` (or `reauthorizeTeamClient`) or when the app initially launches via `setupWithAppKeyMultiUser`/`setupWithAppKeyMultiUserDesktop` (or `setupWithTeamAppKeyMultiUser`/`setupWithTeamAppKeyMultiUserDesktop`)
 * client manager instantiates a `DropboxTransportClient` (if not supplied by the user)
@@ -783,7 +790,7 @@ For some apps, it is necessary to manage more than one Dropbox account (and acce
 
 The `DropboxClient` (or `DropboxTeamClient`) is then used to make all of the desired API calls.
 
-* call `resetClients` to logout Dropbox user but not clear any access tokens
+* On `DropboxClientsManager` call `resetClients` to logout Dropbox user but not clear any access tokens
 * if specific access tokens need to be removed, use the `clearStoredAccessToken` method in `DropboxOAuthManager`
 
 ---
@@ -827,6 +834,42 @@ To ensure your changes have not broken any existing functionality, you can run a
 * open Info.plist and configure the "URL types > Item 0 (Editor) > URL Schemes > Item 0" key to db-"App key"
 * open AppDelegate.swift and replace "FULL_DROPBOX_APP_KEY" with the App key as well
 * run the test app on your device and follow the on-screen instructions
+
+---
+
+## App Store Connect Privacy Labels
+
+To assist developers using Dropbox SDKs in filling out Apple’s Privacy Practices Questionnaire, we’ve provided the below information on the data that may be collected and used by Dropbox.
+
+As you complete the questionnaire you should note that the below information is general in nature. Dropbox SDKs are designed to be configured by the developer to incorporate Dropbox functionality as is best suited to their application. As a result of this customizable nature of the Dropbox SDKs, we are unable to provide information on the actual data collection and use for each application. We advise developers reference our Dropbox for HTTP Developers for specifics on how data is collected by each Dropbox API.
+
+In addition, you should note that the information below only identifies Dropbox’s collection and use of data. You are responsible for identifying your own collection and use of data in your app, which may result in different questionnaire answers than identified below:
+
+| Data                    | Collected by Dropbox                                                      | Data Use                                                                 | Data Linked to the User | Tracking |
+| ----------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ----------------------- | -------- |
+| **Contact Info**        |                                                                           |                                                                          |                         |          |
+| &emsp;• Name            | Not collected                                                             | N/A                                                                      | N/A                     | N/A      |
+| &emsp;• Email Address   | May be collected<br>(if you enable authentication using an email address) | • Application functionality                                              | Y                       | N        |
+| **Health & Fitness**    | Not collected                                                             | N/A                                                                      | N/A                     | N/A      |
+| **Financial Info**      | Not collected                                                             | N/A                                                                      | N/A                     | N/A      |
+| **Location**            | Not collected                                                             | N/A                                                                      | N/A                     | N/A      |
+| **Sensitive Info**      | Not collected                                                             | N/A                                                                      | N/A                     | N/A      |
+| **Contacts**            | Not collected                                                             | N/A                                                                      | N/A                     | N/A      |
+| **User Content**        |                                                                           |                                                                          |                         |          |
+| &emsp;• Audio Data      | May be collected                                                          | • Application functionality                                              | Y                       | N        |
+| &emsp;• Photos or Videos | May be collected                                                          | • Application functionality                                              | Y                       | N        |
+| &emsp;• Other User Content | May be collected                                                          | • Application functionality                                              | Y                       | N        |
+| **Browsing History**    | Not collected                                                             | N/A                                                                      | N/A                     | N/A      |
+| **Search History**      |                                                                           |                                                                          |                         |          |
+| &emsp;• Search History  | May be collected<br>(if using search functionality)                       | • Application functionality<br>• Analytics                               | Y                       | N        |
+| **Identifiers**         |                                                                           |                                                                          |                         |          |
+| &emsp;• User ID         | Collected                                                                 | • Application functionality<br>• Analytics                               | Y                       | N        |
+| **Purchases**           | Not collected                                                             | N/A                                                                      | N/A                     | N/A      |
+| **Usage Data**          |                                                                           |                                                                          |                         |          |
+| &emsp;• Product Interaction | Collected                                                                 | • Application functionality <br>• Analytics<br>• Product personalization | Y                       | N        |
+| **Diagnostics**         |                                                                           |                                                                          |                         |          |
+| &emsp;• Other Diagnostic Data | Collected<br>(API call logs)                                              | • Application functionality                                              | Y                       | N        |
+| **Other Data**          | N/A                                                                       | N/A                                                                      | N/A                     | N/A      |
 
 ---
 

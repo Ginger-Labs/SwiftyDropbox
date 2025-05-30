@@ -28,48 +28,57 @@ open class FilesRoutes {
         return client.request(route, serverArgs: serverArgs)
     }
 
-    /// Create a new file with the contents provided in the request. Note that this endpoint is part of the properties
-    /// API alpha and is slightly different from upload. Do not use this to upload a file larger than 150 MB. Instead,
-    /// create an upload session with uploadSessionStart.
+    /// Create a new file with the contents provided in the request. Note that the behavior of this alpha endpoint is
+    /// unstable and subject to change. Do not use this to upload a file larger than 150 MB. Instead, create an upload
+    /// session with uploadSessionStart.
     ///
+    /// - parameter contentHash: A hash of the file content uploaded in this call. If provided and the uploaded content
+    /// does not match this hash, an error will be returned. For more information see our Content hash
+    /// https://www.dropbox.com/developers/reference/content-hash page.
     /// - parameter input: The file to upload, as an Data object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Files.FileMetadata` object on success or a
-    /// `Files.UploadErrorWithProperties` object on failure.
-    @available(*, unavailable, message:"alphaUpload is deprecated. Use alphaUpload.")
-    @discardableResult open func alphaUpload(path: String, mode: Files.WriteMode = .add, autorename: Bool = false, clientModified: Date? = nil, mute: Bool = false, propertyGroups: Array<FileProperties.PropertyGroup>? = nil, strictConflict: Bool = false, input: Data) -> UploadRequest<Files.FileMetadataSerializer, Files.UploadErrorWithPropertiesSerializer> {
+    /// `Files.UploadError` object on failure.
+    @available(*, unavailable, message:"alphaUpload is deprecated. Use upload.")
+    @discardableResult open func alphaUpload(path: String, mode: Files.WriteMode = .add, autorename: Bool = false, clientModified: Date? = nil, mute: Bool = false, propertyGroups: Array<FileProperties.PropertyGroup>? = nil, strictConflict: Bool = false, contentHash: String? = nil, input: Data) -> UploadRequest<Files.FileMetadataSerializer, Files.UploadErrorSerializer> {
         let route = Files.alphaUpload
-        let serverArgs = Files.CommitInfoWithProperties(path: path, mode: mode, autorename: autorename, clientModified: clientModified, mute: mute, propertyGroups: propertyGroups, strictConflict: strictConflict)
+        let serverArgs = Files.UploadArg(path: path, mode: mode, autorename: autorename, clientModified: clientModified, mute: mute, propertyGroups: propertyGroups, strictConflict: strictConflict, contentHash: contentHash)
         return client.request(route, serverArgs: serverArgs, input: .data(input))
     }
 
-    /// Create a new file with the contents provided in the request. Note that this endpoint is part of the properties
-    /// API alpha and is slightly different from upload. Do not use this to upload a file larger than 150 MB. Instead,
-    /// create an upload session with uploadSessionStart.
+    /// Create a new file with the contents provided in the request. Note that the behavior of this alpha endpoint is
+    /// unstable and subject to change. Do not use this to upload a file larger than 150 MB. Instead, create an upload
+    /// session with uploadSessionStart.
     ///
+    /// - parameter contentHash: A hash of the file content uploaded in this call. If provided and the uploaded content
+    /// does not match this hash, an error will be returned. For more information see our Content hash
+    /// https://www.dropbox.com/developers/reference/content-hash page.
     /// - parameter input: The file to upload, as an URL object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Files.FileMetadata` object on success or a
-    /// `Files.UploadErrorWithProperties` object on failure.
-    @available(*, unavailable, message:"alphaUpload is deprecated. Use alphaUpload.")
-    @discardableResult open func alphaUpload(path: String, mode: Files.WriteMode = .add, autorename: Bool = false, clientModified: Date? = nil, mute: Bool = false, propertyGroups: Array<FileProperties.PropertyGroup>? = nil, strictConflict: Bool = false, input: URL) -> UploadRequest<Files.FileMetadataSerializer, Files.UploadErrorWithPropertiesSerializer> {
+    /// `Files.UploadError` object on failure.
+    @available(*, unavailable, message:"alphaUpload is deprecated. Use upload.")
+    @discardableResult open func alphaUpload(path: String, mode: Files.WriteMode = .add, autorename: Bool = false, clientModified: Date? = nil, mute: Bool = false, propertyGroups: Array<FileProperties.PropertyGroup>? = nil, strictConflict: Bool = false, contentHash: String? = nil, input: URL) -> UploadRequest<Files.FileMetadataSerializer, Files.UploadErrorSerializer> {
         let route = Files.alphaUpload
-        let serverArgs = Files.CommitInfoWithProperties(path: path, mode: mode, autorename: autorename, clientModified: clientModified, mute: mute, propertyGroups: propertyGroups, strictConflict: strictConflict)
+        let serverArgs = Files.UploadArg(path: path, mode: mode, autorename: autorename, clientModified: clientModified, mute: mute, propertyGroups: propertyGroups, strictConflict: strictConflict, contentHash: contentHash)
         return client.request(route, serverArgs: serverArgs, input: .file(input))
     }
 
-    /// Create a new file with the contents provided in the request. Note that this endpoint is part of the properties
-    /// API alpha and is slightly different from upload. Do not use this to upload a file larger than 150 MB. Instead,
-    /// create an upload session with uploadSessionStart.
+    /// Create a new file with the contents provided in the request. Note that the behavior of this alpha endpoint is
+    /// unstable and subject to change. Do not use this to upload a file larger than 150 MB. Instead, create an upload
+    /// session with uploadSessionStart.
     ///
+    /// - parameter contentHash: A hash of the file content uploaded in this call. If provided and the uploaded content
+    /// does not match this hash, an error will be returned. For more information see our Content hash
+    /// https://www.dropbox.com/developers/reference/content-hash page.
     /// - parameter input: The file to upload, as an InputStream object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Files.FileMetadata` object on success or a
-    /// `Files.UploadErrorWithProperties` object on failure.
-    @available(*, unavailable, message:"alphaUpload is deprecated. Use alphaUpload.")
-    @discardableResult open func alphaUpload(path: String, mode: Files.WriteMode = .add, autorename: Bool = false, clientModified: Date? = nil, mute: Bool = false, propertyGroups: Array<FileProperties.PropertyGroup>? = nil, strictConflict: Bool = false, input: InputStream) -> UploadRequest<Files.FileMetadataSerializer, Files.UploadErrorWithPropertiesSerializer> {
+    /// `Files.UploadError` object on failure.
+    @available(*, unavailable, message:"alphaUpload is deprecated. Use upload.")
+    @discardableResult open func alphaUpload(path: String, mode: Files.WriteMode = .add, autorename: Bool = false, clientModified: Date? = nil, mute: Bool = false, propertyGroups: Array<FileProperties.PropertyGroup>? = nil, strictConflict: Bool = false, contentHash: String? = nil, input: InputStream) -> UploadRequest<Files.FileMetadataSerializer, Files.UploadErrorSerializer> {
         let route = Files.alphaUpload
-        let serverArgs = Files.CommitInfoWithProperties(path: path, mode: mode, autorename: autorename, clientModified: clientModified, mute: mute, propertyGroups: propertyGroups, strictConflict: strictConflict)
+        let serverArgs = Files.UploadArg(path: path, mode: mode, autorename: autorename, clientModified: clientModified, mute: mute, propertyGroups: propertyGroups, strictConflict: strictConflict, contentHash: contentHash)
         return client.request(route, serverArgs: serverArgs, input: .stream(input))
     }
 
@@ -347,7 +356,8 @@ open class FilesRoutes {
 
     /// Download a folder from the user's Dropbox, as a zip file. The folder must be less than 20 GB in size and any
     /// single file within must be less than 4 GB in size. The resulting zip must have fewer than 10,000 total file and
-    /// folder entries, including the top level folder. The input cannot be a single file.
+    /// folder entries, including the top level folder. The input cannot be a single file. Note: this endpoint does not
+    /// support HTTP range requests.
     ///
     /// - parameter path: The path of the folder to download.
     /// - parameter overwrite: A boolean to set behavior in the event of a naming conflict. `True` will overwrite
@@ -366,7 +376,8 @@ open class FilesRoutes {
 
     /// Download a folder from the user's Dropbox, as a zip file. The folder must be less than 20 GB in size and any
     /// single file within must be less than 4 GB in size. The resulting zip must have fewer than 10,000 total file and
-    /// folder entries, including the top level folder. The input cannot be a single file.
+    /// folder entries, including the top level folder. The input cannot be a single file. Note: this endpoint does not
+    /// support HTTP range requests.
     ///
     /// - parameter path: The path of the folder to download.
     ///
@@ -509,7 +520,7 @@ open class FilesRoutes {
     /// Content-Type set to "application/octet-stream".  Example temporary upload link consumption request:  curl -X
     /// POST https://content.dropboxapi.com/apitul/1/bNi2uIYF51cVBND --header "Content-Type: application/octet-stream"
     /// --data-binary @local_file.txt  A successful temporary upload link consumption request returns the content hash
-    /// of the uploaded data in JSON format.  Example succesful temporary upload link consumption response:
+    /// of the uploaded data in JSON format.  Example successful temporary upload link consumption response:
     /// {"content-hash": "599d71033d700ac892a0e48fa61b125d2f5994"}  An unsuccessful temporary upload link consumption
     /// request returns any of the following status codes:  HTTP 400 Bad Request: Content-Type is not one of
     /// application/octet-stream and text/plain or request is invalid. HTTP 409 Conflict: The temporary upload link does
@@ -1159,6 +1170,45 @@ open class FilesRoutes {
         return client.request(route, serverArgs: serverArgs)
     }
 
+    /// Add a tag to an item. A tag is a string. The strings are automatically converted to lowercase letters. No more
+    /// than 20 tags can be added to a given item.
+    ///
+    /// - parameter path: Path to the item to be tagged.
+    /// - parameter tagText: The value of the tag to add. Will be automatically converted to lowercase letters.
+    ///
+    ///  - returns: Through the response callback, the caller will receive a `Void` object on success or a
+    /// `Files.AddTagError` object on failure.
+    @discardableResult open func tagsAdd(path: String, tagText: String) -> RpcRequest<VoidSerializer, Files.AddTagErrorSerializer> {
+        let route = Files.tagsAdd
+        let serverArgs = Files.AddTagArg(path: path, tagText: tagText)
+        return client.request(route, serverArgs: serverArgs)
+    }
+
+    /// Get list of tags assigned to items.
+    ///
+    /// - parameter paths: Path to the items.
+    ///
+    ///  - returns: Through the response callback, the caller will receive a `Files.GetTagsResult` object on success or
+    /// a `Files.BaseTagError` object on failure.
+    @discardableResult open func tagsGet(paths: Array<String>) -> RpcRequest<Files.GetTagsResultSerializer, Files.BaseTagErrorSerializer> {
+        let route = Files.tagsGet
+        let serverArgs = Files.GetTagsArg(paths: paths)
+        return client.request(route, serverArgs: serverArgs)
+    }
+
+    /// Remove a tag from an item.
+    ///
+    /// - parameter path: Path to the item to tag.
+    /// - parameter tagText: The tag to remove. Will be automatically converted to lowercase letters.
+    ///
+    ///  - returns: Through the response callback, the caller will receive a `Void` object on success or a
+    /// `Files.RemoveTagError` object on failure.
+    @discardableResult open func tagsRemove(path: String, tagText: String) -> RpcRequest<VoidSerializer, Files.RemoveTagErrorSerializer> {
+        let route = Files.tagsRemove
+        let serverArgs = Files.RemoveTagArg(path: path, tagText: tagText)
+        return client.request(route, serverArgs: serverArgs)
+    }
+
     /// Unlock the files at the given paths. A locked file can only be unlocked by the lock holder or, if a business
     /// account, a team admin. A successful response indicates that the file has been unlocked. Returns a list of the
     /// unlocked file paths and their metadata after this operation.
@@ -1180,29 +1230,16 @@ open class FilesRoutes {
     /// month. For more information, see the Data transport limit page
     /// https://www.dropbox.com/developers/reference/data-transport-limit.
     ///
-    /// - parameter path: Path in the user's Dropbox to save the file.
-    /// - parameter mode: Selects what to do if the file already exists.
-    /// - parameter autorename: If there's a conflict, as determined by mode, have the Dropbox server try to autorename
-    /// the file to avoid conflict.
-    /// - parameter clientModified: The value to store as the clientModified timestamp. Dropbox automatically records
-    /// the time at which the file was written to the Dropbox servers. It can also record an additional timestamp,
-    /// provided by Dropbox desktop clients, mobile clients, and API apps of when the file was actually created or
-    /// modified.
-    /// - parameter mute: Normally, users are made aware of any file modifications in their Dropbox account via
-    /// notifications in the client software. If true, this tells the clients that this modification shouldn't result in
-    /// a user notification.
-    /// - parameter propertyGroups: List of custom properties to add to file.
-    /// - parameter strictConflict: Be more strict about how each WriteMode detects conflict. For example, always return
-    /// a conflict error when mode = update in WriteMode and the given "rev" doesn't match the existing file's "rev",
-    /// even if the existing file has been deleted. This also forces a conflict even when the target path refers to a
-    /// file with identical contents.
+    /// - parameter contentHash: A hash of the file content uploaded in this call. If provided and the uploaded content
+    /// does not match this hash, an error will be returned. For more information see our Content hash
+    /// https://www.dropbox.com/developers/reference/content-hash page.
     /// - parameter input: The file to upload, as an Data object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Files.FileMetadata` object on success or a
     /// `Files.UploadError` object on failure.
-    @discardableResult open func upload(path: String, mode: Files.WriteMode = .add, autorename: Bool = false, clientModified: Date? = nil, mute: Bool = false, propertyGroups: Array<FileProperties.PropertyGroup>? = nil, strictConflict: Bool = false, input: Data) -> UploadRequest<Files.FileMetadataSerializer, Files.UploadErrorSerializer> {
+    @discardableResult open func upload(path: String, mode: Files.WriteMode = .add, autorename: Bool = false, clientModified: Date? = nil, mute: Bool = false, propertyGroups: Array<FileProperties.PropertyGroup>? = nil, strictConflict: Bool = false, contentHash: String? = nil, input: Data) -> UploadRequest<Files.FileMetadataSerializer, Files.UploadErrorSerializer> {
         let route = Files.upload
-        let serverArgs = Files.CommitInfo(path: path, mode: mode, autorename: autorename, clientModified: clientModified, mute: mute, propertyGroups: propertyGroups, strictConflict: strictConflict)
+        let serverArgs = Files.UploadArg(path: path, mode: mode, autorename: autorename, clientModified: clientModified, mute: mute, propertyGroups: propertyGroups, strictConflict: strictConflict, contentHash: contentHash)
         return client.request(route, serverArgs: serverArgs, input: .data(input))
     }
 
@@ -1212,29 +1249,16 @@ open class FilesRoutes {
     /// month. For more information, see the Data transport limit page
     /// https://www.dropbox.com/developers/reference/data-transport-limit.
     ///
-    /// - parameter path: Path in the user's Dropbox to save the file.
-    /// - parameter mode: Selects what to do if the file already exists.
-    /// - parameter autorename: If there's a conflict, as determined by mode, have the Dropbox server try to autorename
-    /// the file to avoid conflict.
-    /// - parameter clientModified: The value to store as the clientModified timestamp. Dropbox automatically records
-    /// the time at which the file was written to the Dropbox servers. It can also record an additional timestamp,
-    /// provided by Dropbox desktop clients, mobile clients, and API apps of when the file was actually created or
-    /// modified.
-    /// - parameter mute: Normally, users are made aware of any file modifications in their Dropbox account via
-    /// notifications in the client software. If true, this tells the clients that this modification shouldn't result in
-    /// a user notification.
-    /// - parameter propertyGroups: List of custom properties to add to file.
-    /// - parameter strictConflict: Be more strict about how each WriteMode detects conflict. For example, always return
-    /// a conflict error when mode = update in WriteMode and the given "rev" doesn't match the existing file's "rev",
-    /// even if the existing file has been deleted. This also forces a conflict even when the target path refers to a
-    /// file with identical contents.
+    /// - parameter contentHash: A hash of the file content uploaded in this call. If provided and the uploaded content
+    /// does not match this hash, an error will be returned. For more information see our Content hash
+    /// https://www.dropbox.com/developers/reference/content-hash page.
     /// - parameter input: The file to upload, as an URL object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Files.FileMetadata` object on success or a
     /// `Files.UploadError` object on failure.
-    @discardableResult open func upload(path: String, mode: Files.WriteMode = .add, autorename: Bool = false, clientModified: Date? = nil, mute: Bool = false, propertyGroups: Array<FileProperties.PropertyGroup>? = nil, strictConflict: Bool = false, input: URL) -> UploadRequest<Files.FileMetadataSerializer, Files.UploadErrorSerializer> {
+    @discardableResult open func upload(path: String, mode: Files.WriteMode = .add, autorename: Bool = false, clientModified: Date? = nil, mute: Bool = false, propertyGroups: Array<FileProperties.PropertyGroup>? = nil, strictConflict: Bool = false, contentHash: String? = nil, input: URL) -> UploadRequest<Files.FileMetadataSerializer, Files.UploadErrorSerializer> {
         let route = Files.upload
-        let serverArgs = Files.CommitInfo(path: path, mode: mode, autorename: autorename, clientModified: clientModified, mute: mute, propertyGroups: propertyGroups, strictConflict: strictConflict)
+        let serverArgs = Files.UploadArg(path: path, mode: mode, autorename: autorename, clientModified: clientModified, mute: mute, propertyGroups: propertyGroups, strictConflict: strictConflict, contentHash: contentHash)
         return client.request(route, serverArgs: serverArgs, input: .file(input))
     }
 
@@ -1244,29 +1268,16 @@ open class FilesRoutes {
     /// month. For more information, see the Data transport limit page
     /// https://www.dropbox.com/developers/reference/data-transport-limit.
     ///
-    /// - parameter path: Path in the user's Dropbox to save the file.
-    /// - parameter mode: Selects what to do if the file already exists.
-    /// - parameter autorename: If there's a conflict, as determined by mode, have the Dropbox server try to autorename
-    /// the file to avoid conflict.
-    /// - parameter clientModified: The value to store as the clientModified timestamp. Dropbox automatically records
-    /// the time at which the file was written to the Dropbox servers. It can also record an additional timestamp,
-    /// provided by Dropbox desktop clients, mobile clients, and API apps of when the file was actually created or
-    /// modified.
-    /// - parameter mute: Normally, users are made aware of any file modifications in their Dropbox account via
-    /// notifications in the client software. If true, this tells the clients that this modification shouldn't result in
-    /// a user notification.
-    /// - parameter propertyGroups: List of custom properties to add to file.
-    /// - parameter strictConflict: Be more strict about how each WriteMode detects conflict. For example, always return
-    /// a conflict error when mode = update in WriteMode and the given "rev" doesn't match the existing file's "rev",
-    /// even if the existing file has been deleted. This also forces a conflict even when the target path refers to a
-    /// file with identical contents.
+    /// - parameter contentHash: A hash of the file content uploaded in this call. If provided and the uploaded content
+    /// does not match this hash, an error will be returned. For more information see our Content hash
+    /// https://www.dropbox.com/developers/reference/content-hash page.
     /// - parameter input: The file to upload, as an InputStream object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Files.FileMetadata` object on success or a
     /// `Files.UploadError` object on failure.
-    @discardableResult open func upload(path: String, mode: Files.WriteMode = .add, autorename: Bool = false, clientModified: Date? = nil, mute: Bool = false, propertyGroups: Array<FileProperties.PropertyGroup>? = nil, strictConflict: Bool = false, input: InputStream) -> UploadRequest<Files.FileMetadataSerializer, Files.UploadErrorSerializer> {
+    @discardableResult open func upload(path: String, mode: Files.WriteMode = .add, autorename: Bool = false, clientModified: Date? = nil, mute: Bool = false, propertyGroups: Array<FileProperties.PropertyGroup>? = nil, strictConflict: Bool = false, contentHash: String? = nil, input: InputStream) -> UploadRequest<Files.FileMetadataSerializer, Files.UploadErrorSerializer> {
         let route = Files.upload
-        let serverArgs = Files.CommitInfo(path: path, mode: mode, autorename: autorename, clientModified: clientModified, mute: mute, propertyGroups: propertyGroups, strictConflict: strictConflict)
+        let serverArgs = Files.UploadArg(path: path, mode: mode, autorename: autorename, clientModified: clientModified, mute: mute, propertyGroups: propertyGroups, strictConflict: strictConflict, contentHash: contentHash)
         return client.request(route, serverArgs: serverArgs, input: .stream(input))
     }
 
@@ -1279,13 +1290,16 @@ open class FilesRoutes {
     /// - parameter cursor: Contains the upload session ID and the offset.
     /// - parameter close: If true, the current session will be closed, at which point you won't be able to call
     /// uploadSessionAppendV2 anymore with the current session.
+    /// - parameter contentHash: A hash of the file content uploaded in this call. If provided and the uploaded content
+    /// does not match this hash, an error will be returned. For more information see our Content hash
+    /// https://www.dropbox.com/developers/reference/content-hash page.
     /// - parameter input: The file to upload, as an Data object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Void` object on success or a
-    /// `Files.UploadSessionLookupError` object on failure.
-    @discardableResult open func uploadSessionAppendV2(cursor: Files.UploadSessionCursor, close: Bool = false, input: Data) -> UploadRequest<VoidSerializer, Files.UploadSessionLookupErrorSerializer> {
+    /// `Files.UploadSessionAppendError` object on failure.
+    @discardableResult open func uploadSessionAppendV2(cursor: Files.UploadSessionCursor, close: Bool = false, contentHash: String? = nil, input: Data) -> UploadRequest<VoidSerializer, Files.UploadSessionAppendErrorSerializer> {
         let route = Files.uploadSessionAppendV2
-        let serverArgs = Files.UploadSessionAppendArg(cursor: cursor, close: close)
+        let serverArgs = Files.UploadSessionAppendArg(cursor: cursor, close: close, contentHash: contentHash)
         return client.request(route, serverArgs: serverArgs, input: .data(input))
     }
 
@@ -1298,13 +1312,16 @@ open class FilesRoutes {
     /// - parameter cursor: Contains the upload session ID and the offset.
     /// - parameter close: If true, the current session will be closed, at which point you won't be able to call
     /// uploadSessionAppendV2 anymore with the current session.
+    /// - parameter contentHash: A hash of the file content uploaded in this call. If provided and the uploaded content
+    /// does not match this hash, an error will be returned. For more information see our Content hash
+    /// https://www.dropbox.com/developers/reference/content-hash page.
     /// - parameter input: The file to upload, as an URL object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Void` object on success or a
-    /// `Files.UploadSessionLookupError` object on failure.
-    @discardableResult open func uploadSessionAppendV2(cursor: Files.UploadSessionCursor, close: Bool = false, input: URL) -> UploadRequest<VoidSerializer, Files.UploadSessionLookupErrorSerializer> {
+    /// `Files.UploadSessionAppendError` object on failure.
+    @discardableResult open func uploadSessionAppendV2(cursor: Files.UploadSessionCursor, close: Bool = false, contentHash: String? = nil, input: URL) -> UploadRequest<VoidSerializer, Files.UploadSessionAppendErrorSerializer> {
         let route = Files.uploadSessionAppendV2
-        let serverArgs = Files.UploadSessionAppendArg(cursor: cursor, close: close)
+        let serverArgs = Files.UploadSessionAppendArg(cursor: cursor, close: close, contentHash: contentHash)
         return client.request(route, serverArgs: serverArgs, input: .file(input))
     }
 
@@ -1317,13 +1334,16 @@ open class FilesRoutes {
     /// - parameter cursor: Contains the upload session ID and the offset.
     /// - parameter close: If true, the current session will be closed, at which point you won't be able to call
     /// uploadSessionAppendV2 anymore with the current session.
+    /// - parameter contentHash: A hash of the file content uploaded in this call. If provided and the uploaded content
+    /// does not match this hash, an error will be returned. For more information see our Content hash
+    /// https://www.dropbox.com/developers/reference/content-hash page.
     /// - parameter input: The file to upload, as an InputStream object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Void` object on success or a
-    /// `Files.UploadSessionLookupError` object on failure.
-    @discardableResult open func uploadSessionAppendV2(cursor: Files.UploadSessionCursor, close: Bool = false, input: InputStream) -> UploadRequest<VoidSerializer, Files.UploadSessionLookupErrorSerializer> {
+    /// `Files.UploadSessionAppendError` object on failure.
+    @discardableResult open func uploadSessionAppendV2(cursor: Files.UploadSessionCursor, close: Bool = false, contentHash: String? = nil, input: InputStream) -> UploadRequest<VoidSerializer, Files.UploadSessionAppendErrorSerializer> {
         let route = Files.uploadSessionAppendV2
-        let serverArgs = Files.UploadSessionAppendArg(cursor: cursor, close: close)
+        let serverArgs = Files.UploadSessionAppendArg(cursor: cursor, close: close, contentHash: contentHash)
         return client.request(route, serverArgs: serverArgs, input: .stream(input))
     }
 
@@ -1339,9 +1359,9 @@ open class FilesRoutes {
     /// - parameter input: The file to upload, as an Data object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Void` object on success or a
-    /// `Files.UploadSessionLookupError` object on failure.
+    /// `Files.UploadSessionAppendError` object on failure.
     @available(*, unavailable, message:"uploadSessionAppend is deprecated. Use uploadSessionAppendV2.")
-    @discardableResult open func uploadSessionAppend(sessionId: String, offset: UInt64, input: Data) -> UploadRequest<VoidSerializer, Files.UploadSessionLookupErrorSerializer> {
+    @discardableResult open func uploadSessionAppend(sessionId: String, offset: UInt64, input: Data) -> UploadRequest<VoidSerializer, Files.UploadSessionAppendErrorSerializer> {
         let route = Files.uploadSessionAppend
         let serverArgs = Files.UploadSessionCursor(sessionId: sessionId, offset: offset)
         return client.request(route, serverArgs: serverArgs, input: .data(input))
@@ -1359,9 +1379,9 @@ open class FilesRoutes {
     /// - parameter input: The file to upload, as an URL object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Void` object on success or a
-    /// `Files.UploadSessionLookupError` object on failure.
+    /// `Files.UploadSessionAppendError` object on failure.
     @available(*, unavailable, message:"uploadSessionAppend is deprecated. Use uploadSessionAppendV2.")
-    @discardableResult open func uploadSessionAppend(sessionId: String, offset: UInt64, input: URL) -> UploadRequest<VoidSerializer, Files.UploadSessionLookupErrorSerializer> {
+    @discardableResult open func uploadSessionAppend(sessionId: String, offset: UInt64, input: URL) -> UploadRequest<VoidSerializer, Files.UploadSessionAppendErrorSerializer> {
         let route = Files.uploadSessionAppend
         let serverArgs = Files.UploadSessionCursor(sessionId: sessionId, offset: offset)
         return client.request(route, serverArgs: serverArgs, input: .file(input))
@@ -1379,9 +1399,9 @@ open class FilesRoutes {
     /// - parameter input: The file to upload, as an InputStream object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Void` object on success or a
-    /// `Files.UploadSessionLookupError` object on failure.
+    /// `Files.UploadSessionAppendError` object on failure.
     @available(*, unavailable, message:"uploadSessionAppend is deprecated. Use uploadSessionAppendV2.")
-    @discardableResult open func uploadSessionAppend(sessionId: String, offset: UInt64, input: InputStream) -> UploadRequest<VoidSerializer, Files.UploadSessionLookupErrorSerializer> {
+    @discardableResult open func uploadSessionAppend(sessionId: String, offset: UInt64, input: InputStream) -> UploadRequest<VoidSerializer, Files.UploadSessionAppendErrorSerializer> {
         let route = Files.uploadSessionAppend
         let serverArgs = Files.UploadSessionCursor(sessionId: sessionId, offset: offset)
         return client.request(route, serverArgs: serverArgs, input: .stream(input))
@@ -1395,13 +1415,16 @@ open class FilesRoutes {
     ///
     /// - parameter cursor: Contains the upload session ID and the offset.
     /// - parameter commit: Contains the path and other optional modifiers for the commit.
+    /// - parameter contentHash: A hash of the file content uploaded in this call. If provided and the uploaded content
+    /// does not match this hash, an error will be returned. For more information see our Content hash
+    /// https://www.dropbox.com/developers/reference/content-hash page.
     /// - parameter input: The file to upload, as an Data object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Files.FileMetadata` object on success or a
     /// `Files.UploadSessionFinishError` object on failure.
-    @discardableResult open func uploadSessionFinish(cursor: Files.UploadSessionCursor, commit: Files.CommitInfo, input: Data) -> UploadRequest<Files.FileMetadataSerializer, Files.UploadSessionFinishErrorSerializer> {
+    @discardableResult open func uploadSessionFinish(cursor: Files.UploadSessionCursor, commit: Files.CommitInfo, contentHash: String? = nil, input: Data) -> UploadRequest<Files.FileMetadataSerializer, Files.UploadSessionFinishErrorSerializer> {
         let route = Files.uploadSessionFinish
-        let serverArgs = Files.UploadSessionFinishArg(cursor: cursor, commit: commit)
+        let serverArgs = Files.UploadSessionFinishArg(cursor: cursor, commit: commit, contentHash: contentHash)
         return client.request(route, serverArgs: serverArgs, input: .data(input))
     }
 
@@ -1413,13 +1436,16 @@ open class FilesRoutes {
     ///
     /// - parameter cursor: Contains the upload session ID and the offset.
     /// - parameter commit: Contains the path and other optional modifiers for the commit.
+    /// - parameter contentHash: A hash of the file content uploaded in this call. If provided and the uploaded content
+    /// does not match this hash, an error will be returned. For more information see our Content hash
+    /// https://www.dropbox.com/developers/reference/content-hash page.
     /// - parameter input: The file to upload, as an URL object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Files.FileMetadata` object on success or a
     /// `Files.UploadSessionFinishError` object on failure.
-    @discardableResult open func uploadSessionFinish(cursor: Files.UploadSessionCursor, commit: Files.CommitInfo, input: URL) -> UploadRequest<Files.FileMetadataSerializer, Files.UploadSessionFinishErrorSerializer> {
+    @discardableResult open func uploadSessionFinish(cursor: Files.UploadSessionCursor, commit: Files.CommitInfo, contentHash: String? = nil, input: URL) -> UploadRequest<Files.FileMetadataSerializer, Files.UploadSessionFinishErrorSerializer> {
         let route = Files.uploadSessionFinish
-        let serverArgs = Files.UploadSessionFinishArg(cursor: cursor, commit: commit)
+        let serverArgs = Files.UploadSessionFinishArg(cursor: cursor, commit: commit, contentHash: contentHash)
         return client.request(route, serverArgs: serverArgs, input: .file(input))
     }
 
@@ -1431,13 +1457,16 @@ open class FilesRoutes {
     ///
     /// - parameter cursor: Contains the upload session ID and the offset.
     /// - parameter commit: Contains the path and other optional modifiers for the commit.
+    /// - parameter contentHash: A hash of the file content uploaded in this call. If provided and the uploaded content
+    /// does not match this hash, an error will be returned. For more information see our Content hash
+    /// https://www.dropbox.com/developers/reference/content-hash page.
     /// - parameter input: The file to upload, as an InputStream object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Files.FileMetadata` object on success or a
     /// `Files.UploadSessionFinishError` object on failure.
-    @discardableResult open func uploadSessionFinish(cursor: Files.UploadSessionCursor, commit: Files.CommitInfo, input: InputStream) -> UploadRequest<Files.FileMetadataSerializer, Files.UploadSessionFinishErrorSerializer> {
+    @discardableResult open func uploadSessionFinish(cursor: Files.UploadSessionCursor, commit: Files.CommitInfo, contentHash: String? = nil, input: InputStream) -> UploadRequest<Files.FileMetadataSerializer, Files.UploadSessionFinishErrorSerializer> {
         let route = Files.uploadSessionFinish
-        let serverArgs = Files.UploadSessionFinishArg(cursor: cursor, commit: commit)
+        let serverArgs = Files.UploadSessionFinishArg(cursor: cursor, commit: commit, contentHash: contentHash)
         return client.request(route, serverArgs: serverArgs, input: .stream(input))
     }
 
@@ -1458,8 +1487,29 @@ open class FilesRoutes {
     ///
     ///  - returns: Through the response callback, the caller will receive a `Files.UploadSessionFinishBatchLaunch`
     /// object on success or a `Void` object on failure.
+    @available(*, unavailable, message:"uploadSessionFinishBatch is deprecated. Use uploadSessionFinishBatchV2.")
     @discardableResult open func uploadSessionFinishBatch(entries: Array<Files.UploadSessionFinishArg>) -> RpcRequest<Files.UploadSessionFinishBatchLaunchSerializer, VoidSerializer> {
         let route = Files.uploadSessionFinishBatch
+        let serverArgs = Files.UploadSessionFinishBatchArg(entries: entries)
+        return client.request(route, serverArgs: serverArgs)
+    }
+
+    /// This route helps you commit many files at once into a user's Dropbox. Use uploadSessionStart and
+    /// uploadSessionAppendV2 to upload file contents. We recommend uploading many files in parallel to increase
+    /// throughput. Once the file contents have been uploaded, rather than calling uploadSessionFinish, use this route
+    /// to finish all your upload sessions in a single request. close in UploadSessionStartArg or close in
+    /// UploadSessionAppendArg needs to be true for the last uploadSessionStart or uploadSessionAppendV2 call of each
+    /// upload session. The maximum size of a file one can upload to an upload session is 350 GB. We allow up to 1000
+    /// entries in a single request. Calls to this endpoint will count as data transport calls for any Dropbox Business
+    /// teams with a limit on the number of data transport calls allowed per month. For more information, see the Data
+    /// transport limit page https://www.dropbox.com/developers/reference/data-transport-limit.
+    ///
+    /// - parameter entries: Commit information for each file in the batch.
+    ///
+    ///  - returns: Through the response callback, the caller will receive a `Files.UploadSessionFinishBatchResult`
+    /// object on success or a `Void` object on failure.
+    @discardableResult open func uploadSessionFinishBatchV2(entries: Array<Files.UploadSessionFinishArg>) -> RpcRequest<Files.UploadSessionFinishBatchResultSerializer, VoidSerializer> {
+        let route = Files.uploadSessionFinishBatchV2
         let serverArgs = Files.UploadSessionFinishBatchArg(entries: entries)
         return client.request(route, serverArgs: serverArgs)
     }
@@ -1502,13 +1552,16 @@ open class FilesRoutes {
     /// uploadSessionAppendV2 anymore with the current session.
     /// - parameter sessionType: Type of upload session you want to start. If not specified, default is sequential in
     /// UploadSessionType.
+    /// - parameter contentHash: A hash of the file content uploaded in this call. If provided and the uploaded content
+    /// does not match this hash, an error will be returned. For more information see our Content hash
+    /// https://www.dropbox.com/developers/reference/content-hash page.
     /// - parameter input: The file to upload, as an Data object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Files.UploadSessionStartResult` object on
     /// success or a `Files.UploadSessionStartError` object on failure.
-    @discardableResult open func uploadSessionStart(close: Bool = false, sessionType: Files.UploadSessionType? = nil, input: Data) -> UploadRequest<Files.UploadSessionStartResultSerializer, Files.UploadSessionStartErrorSerializer> {
+    @discardableResult open func uploadSessionStart(close: Bool = false, sessionType: Files.UploadSessionType? = nil, contentHash: String? = nil, input: Data) -> UploadRequest<Files.UploadSessionStartResultSerializer, Files.UploadSessionStartErrorSerializer> {
         let route = Files.uploadSessionStart
-        let serverArgs = Files.UploadSessionStartArg(close: close, sessionType: sessionType)
+        let serverArgs = Files.UploadSessionStartArg(close: close, sessionType: sessionType, contentHash: contentHash)
         return client.request(route, serverArgs: serverArgs, input: .data(input))
     }
 
@@ -1536,13 +1589,16 @@ open class FilesRoutes {
     /// uploadSessionAppendV2 anymore with the current session.
     /// - parameter sessionType: Type of upload session you want to start. If not specified, default is sequential in
     /// UploadSessionType.
+    /// - parameter contentHash: A hash of the file content uploaded in this call. If provided and the uploaded content
+    /// does not match this hash, an error will be returned. For more information see our Content hash
+    /// https://www.dropbox.com/developers/reference/content-hash page.
     /// - parameter input: The file to upload, as an URL object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Files.UploadSessionStartResult` object on
     /// success or a `Files.UploadSessionStartError` object on failure.
-    @discardableResult open func uploadSessionStart(close: Bool = false, sessionType: Files.UploadSessionType? = nil, input: URL) -> UploadRequest<Files.UploadSessionStartResultSerializer, Files.UploadSessionStartErrorSerializer> {
+    @discardableResult open func uploadSessionStart(close: Bool = false, sessionType: Files.UploadSessionType? = nil, contentHash: String? = nil, input: URL) -> UploadRequest<Files.UploadSessionStartResultSerializer, Files.UploadSessionStartErrorSerializer> {
         let route = Files.uploadSessionStart
-        let serverArgs = Files.UploadSessionStartArg(close: close, sessionType: sessionType)
+        let serverArgs = Files.UploadSessionStartArg(close: close, sessionType: sessionType, contentHash: contentHash)
         return client.request(route, serverArgs: serverArgs, input: .file(input))
     }
 
@@ -1570,14 +1626,34 @@ open class FilesRoutes {
     /// uploadSessionAppendV2 anymore with the current session.
     /// - parameter sessionType: Type of upload session you want to start. If not specified, default is sequential in
     /// UploadSessionType.
+    /// - parameter contentHash: A hash of the file content uploaded in this call. If provided and the uploaded content
+    /// does not match this hash, an error will be returned. For more information see our Content hash
+    /// https://www.dropbox.com/developers/reference/content-hash page.
     /// - parameter input: The file to upload, as an InputStream object.
     ///
     ///  - returns: Through the response callback, the caller will receive a `Files.UploadSessionStartResult` object on
     /// success or a `Files.UploadSessionStartError` object on failure.
-    @discardableResult open func uploadSessionStart(close: Bool = false, sessionType: Files.UploadSessionType? = nil, input: InputStream) -> UploadRequest<Files.UploadSessionStartResultSerializer, Files.UploadSessionStartErrorSerializer> {
+    @discardableResult open func uploadSessionStart(close: Bool = false, sessionType: Files.UploadSessionType? = nil, contentHash: String? = nil, input: InputStream) -> UploadRequest<Files.UploadSessionStartResultSerializer, Files.UploadSessionStartErrorSerializer> {
         let route = Files.uploadSessionStart
-        let serverArgs = Files.UploadSessionStartArg(close: close, sessionType: sessionType)
+        let serverArgs = Files.UploadSessionStartArg(close: close, sessionType: sessionType, contentHash: contentHash)
         return client.request(route, serverArgs: serverArgs, input: .stream(input))
+    }
+
+    /// This route starts batch of upload_sessions. Please refer to `upload_session/start` usage. Calls to this endpoint
+    /// will count as data transport calls for any Dropbox Business teams with a limit on the number of data transport
+    /// calls allowed per month. For more information, see the Data transport limit page
+    /// https://www.dropbox.com/developers/reference/data-transport-limit.
+    ///
+    /// - parameter sessionType: Type of upload session you want to start. If not specified, default is sequential in
+    /// UploadSessionType.
+    /// - parameter numSessions: The number of upload sessions to start.
+    ///
+    ///  - returns: Through the response callback, the caller will receive a `Files.UploadSessionStartBatchResult`
+    /// object on success or a `Void` object on failure.
+    @discardableResult open func uploadSessionStartBatch(numSessions: UInt64, sessionType: Files.UploadSessionType? = nil) -> RpcRequest<Files.UploadSessionStartBatchResultSerializer, VoidSerializer> {
+        let route = Files.uploadSessionStartBatch
+        let serverArgs = Files.UploadSessionStartBatchArg(numSessions: numSessions, sessionType: sessionType)
+        return client.request(route, serverArgs: serverArgs)
     }
 
 }

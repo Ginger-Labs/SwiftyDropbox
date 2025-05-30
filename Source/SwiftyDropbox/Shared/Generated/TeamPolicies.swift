@@ -177,6 +177,65 @@ open class TeamPolicies {
         }
     }
 
+    /// The ExternalDriveBackupPolicyState union
+    public enum ExternalDriveBackupPolicyState: CustomStringConvertible {
+        /// External Drive Backup feature is disabled.
+        case disabled
+        /// External Drive Backup feature is enabled.
+        case enabled
+        /// External Drive Backup default value based on team tier.
+        case default_
+        /// An unspecified error.
+        case other
+
+        public var description: String {
+            return "\(SerializeUtil.prepareJSONForSerialization(ExternalDriveBackupPolicyStateSerializer().serialize(self)))"
+        }
+    }
+    open class ExternalDriveBackupPolicyStateSerializer: JSONSerializer {
+        public init() { }
+        open func serialize(_ value: ExternalDriveBackupPolicyState) -> JSON {
+            switch value {
+                case .disabled:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("disabled")
+                    return .dictionary(d)
+                case .enabled:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("enabled")
+                    return .dictionary(d)
+                case .default_:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("default")
+                    return .dictionary(d)
+                case .other:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("other")
+                    return .dictionary(d)
+            }
+        }
+        open func deserialize(_ json: JSON) -> ExternalDriveBackupPolicyState {
+            switch json {
+                case .dictionary(let d):
+                    let tag = Serialization.getTag(d)
+                    switch tag {
+                        case "disabled":
+                            return ExternalDriveBackupPolicyState.disabled
+                        case "enabled":
+                            return ExternalDriveBackupPolicyState.enabled
+                        case "default":
+                            return ExternalDriveBackupPolicyState.default_
+                        case "other":
+                            return ExternalDriveBackupPolicyState.other
+                        default:
+                            return ExternalDriveBackupPolicyState.other
+                    }
+                default:
+                    fatalError("Failed to deserialize")
+            }
+        }
+    }
+
     /// The FileLockingPolicyState union
     public enum FileLockingPolicyState: CustomStringConvertible {
         /// File locking feature is disabled.
@@ -221,6 +280,65 @@ open class TeamPolicies {
                             return FileLockingPolicyState.other
                         default:
                             return FileLockingPolicyState.other
+                    }
+                default:
+                    fatalError("Failed to deserialize")
+            }
+        }
+    }
+
+    /// The FileProviderMigrationPolicyState union
+    public enum FileProviderMigrationPolicyState: CustomStringConvertible {
+        /// Team admin has opted out of File Provider Migration for team members.
+        case disabled
+        /// Team admin has not opted out of File Provider Migration for team members.
+        case enabled
+        /// Team admin has default value based on team tier.
+        case default_
+        /// An unspecified error.
+        case other
+
+        public var description: String {
+            return "\(SerializeUtil.prepareJSONForSerialization(FileProviderMigrationPolicyStateSerializer().serialize(self)))"
+        }
+    }
+    open class FileProviderMigrationPolicyStateSerializer: JSONSerializer {
+        public init() { }
+        open func serialize(_ value: FileProviderMigrationPolicyState) -> JSON {
+            switch value {
+                case .disabled:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("disabled")
+                    return .dictionary(d)
+                case .enabled:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("enabled")
+                    return .dictionary(d)
+                case .default_:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("default")
+                    return .dictionary(d)
+                case .other:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("other")
+                    return .dictionary(d)
+            }
+        }
+        open func deserialize(_ json: JSON) -> FileProviderMigrationPolicyState {
+            switch json {
+                case .dictionary(let d):
+                    let tag = Serialization.getTag(d)
+                    switch tag {
+                        case "disabled":
+                            return FileProviderMigrationPolicyState.disabled
+                        case "enabled":
+                            return FileProviderMigrationPolicyState.enabled
+                        case "default":
+                            return FileProviderMigrationPolicyState.default_
+                        case "other":
+                            return FileProviderMigrationPolicyState.other
+                        default:
+                            return FileProviderMigrationPolicyState.other
                     }
                 default:
                     fatalError("Failed to deserialize")
@@ -810,6 +928,9 @@ open class TeamPolicies {
         /// Only members of the same team can access all shared links. Login will be required to access all shared
         /// links.
         case teamOnly
+        /// Only people invited can access newly created links. Login will be required to access the shared links unless
+        /// overridden.
+        case defaultNoOne
         /// An unspecified error.
         case other
 
@@ -833,6 +954,10 @@ open class TeamPolicies {
                     var d = [String: JSON]()
                     d[".tag"] = .str("team_only")
                     return .dictionary(d)
+                case .defaultNoOne:
+                    var d = [String: JSON]()
+                    d[".tag"] = .str("default_no_one")
+                    return .dictionary(d)
                 case .other:
                     var d = [String: JSON]()
                     d[".tag"] = .str("other")
@@ -850,6 +975,8 @@ open class TeamPolicies {
                             return SharedLinkCreatePolicy.defaultTeamOnly
                         case "team_only":
                             return SharedLinkCreatePolicy.teamOnly
+                        case "default_no_one":
+                            return SharedLinkCreatePolicy.defaultNoOne
                         case "other":
                             return SharedLinkCreatePolicy.other
                         default:
@@ -1282,10 +1409,13 @@ open class TeamPolicies {
         public let sharedFolderJoinPolicy: TeamPolicies.SharedFolderJoinPolicy
         /// Who can view shared links owned by team members.
         public let sharedLinkCreatePolicy: TeamPolicies.SharedLinkCreatePolicy
-        public init(sharedFolderMemberPolicy: TeamPolicies.SharedFolderMemberPolicy, sharedFolderJoinPolicy: TeamPolicies.SharedFolderJoinPolicy, sharedLinkCreatePolicy: TeamPolicies.SharedLinkCreatePolicy) {
+        /// Who can create groups.
+        public let groupCreationPolicy: TeamPolicies.GroupCreation
+        public init(sharedFolderMemberPolicy: TeamPolicies.SharedFolderMemberPolicy, sharedFolderJoinPolicy: TeamPolicies.SharedFolderJoinPolicy, sharedLinkCreatePolicy: TeamPolicies.SharedLinkCreatePolicy, groupCreationPolicy: TeamPolicies.GroupCreation) {
             self.sharedFolderMemberPolicy = sharedFolderMemberPolicy
             self.sharedFolderJoinPolicy = sharedFolderJoinPolicy
             self.sharedLinkCreatePolicy = sharedLinkCreatePolicy
+            self.groupCreationPolicy = groupCreationPolicy
         }
         open var description: String {
             return "\(SerializeUtil.prepareJSONForSerialization(TeamSharingPoliciesSerializer().serialize(self)))"
@@ -1298,6 +1428,7 @@ open class TeamPolicies {
             "shared_folder_member_policy": TeamPolicies.SharedFolderMemberPolicySerializer().serialize(value.sharedFolderMemberPolicy),
             "shared_folder_join_policy": TeamPolicies.SharedFolderJoinPolicySerializer().serialize(value.sharedFolderJoinPolicy),
             "shared_link_create_policy": TeamPolicies.SharedLinkCreatePolicySerializer().serialize(value.sharedLinkCreatePolicy),
+            "group_creation_policy": TeamPolicies.GroupCreationSerializer().serialize(value.groupCreationPolicy),
             ]
             return .dictionary(output)
         }
@@ -1307,7 +1438,8 @@ open class TeamPolicies {
                     let sharedFolderMemberPolicy = TeamPolicies.SharedFolderMemberPolicySerializer().deserialize(dict["shared_folder_member_policy"] ?? .null)
                     let sharedFolderJoinPolicy = TeamPolicies.SharedFolderJoinPolicySerializer().deserialize(dict["shared_folder_join_policy"] ?? .null)
                     let sharedLinkCreatePolicy = TeamPolicies.SharedLinkCreatePolicySerializer().deserialize(dict["shared_link_create_policy"] ?? .null)
-                    return TeamSharingPolicies(sharedFolderMemberPolicy: sharedFolderMemberPolicy, sharedFolderJoinPolicy: sharedFolderJoinPolicy, sharedLinkCreatePolicy: sharedLinkCreatePolicy)
+                    let groupCreationPolicy = TeamPolicies.GroupCreationSerializer().deserialize(dict["group_creation_policy"] ?? .null)
+                    return TeamSharingPolicies(sharedFolderMemberPolicy: sharedFolderMemberPolicy, sharedFolderJoinPolicy: sharedFolderJoinPolicy, sharedLinkCreatePolicy: sharedLinkCreatePolicy, groupCreationPolicy: groupCreationPolicy)
                 default:
                     fatalError("Type error deserializing")
             }
