@@ -19,7 +19,7 @@ extension DBXDropboxClientsManager {
     ///     - sharedApplication: The shared UIApplication instance in your app.
     ///     - controller: A UIViewController to present the auth flow from. This should be the top-most view controller. Reference is weakly held.
     ///     - openURL: Handler to open a URL.
-    @objc
+    //@objc
     @available(
         *,
         deprecated,
@@ -28,9 +28,10 @@ extension DBXDropboxClientsManager {
     public static func authorizeFromController(
         _ sharedApplication: UIApplication,
         controller: UIViewController?,
-        openURL: @escaping ((URL) -> Void)
+        openURL: @escaping ((URL) -> Void),
+        completion: @escaping DropboxOAuthCompletion
     ) {
-        DropboxClientsManager.authorizeFromController(sharedApplication, controller: controller, openURL: openURL)
+        DropboxClientsManager.authorizeFromController(sharedApplication, controller: controller, openURL: openURL, completion: completion)
     }
 
     /// Starts the OAuth 2 Authorization Code Flow with PKCE.
@@ -57,12 +58,13 @@ extension DBXDropboxClientsManager {
     ///     API clients set up by `DropboxClientsManager` will get token refresh logic for free.
     ///     If you need to set up `DropboxClient`/`DropboxTeamClient` without `DropboxClientsManager`,
     ///     you will have to set up the clients with an appropriate `AccessTokenProvider`.
-    @objc
+    //@objc
     public static func authorizeFromControllerV2(
         _ sharedApplication: UIApplication,
         controller: UIViewController?,
         loadingStatusDelegate: LoadingStatusDelegate?,
         openURL: @escaping ((URL) -> Void),
+        completion: @escaping DropboxOAuthCompletion,
         scopeRequest: DBXScopeRequest?
     ) {
         DropboxClientsManager.authorizeFromControllerV2(
@@ -70,6 +72,7 @@ extension DBXDropboxClientsManager {
             controller: controller,
             loadingStatusDelegate: loadingStatusDelegate,
             openURL: openURL,
+            completion: completion,
             scopeRequest: scopeRequest?.swift
         )
     }

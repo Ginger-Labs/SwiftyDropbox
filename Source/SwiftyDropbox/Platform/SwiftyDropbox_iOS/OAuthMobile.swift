@@ -593,7 +593,7 @@ public class MobileSharedApplication: SharedApplication {
                 let session = MobileWebAuthenticationSession(url: authURL, presentingVC: controller) { [weak self] callbackUrl in
                     self?.sessionOrViewController = nil
                     if let url = callbackUrl {
-                        DropboxClientsManager.handleRedirectURL(url) { [weak self] result in
+                        DropboxClientsManager.handleRedirectURL(url, includeBackgroundClient: false) { [weak self] result in
                             self?.completion(result)
                         }
                     } else {
