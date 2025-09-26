@@ -2,6 +2,8 @@
 /// Copyright (c) 2016 Dropbox, Inc. All rights reserved.
 ///
 
+import Foundation
+
 #if os(iOS)
 
 import Foundation
@@ -19,13 +21,23 @@ extension DropboxClientsManager {
     ///
     /// - Parameters:
     ///     - sharedApplication: The shared UIApplication instance in your app.
-    ///     - controller: A UIViewController to present the auth flow from. Reference is weakly held.
+    ///     - controller: A UIViewController to present the auth flow from. This should be the top-most view controller. Reference is weakly held.
     ///     - openURL: Handler to open a URL.
-    @available(*, deprecated, message: "This method was used for long-lived access tokens, which are now deprecated. Please use `authorizeFromControllerV2` instead.")
-    public static func authorizeFromController(_ sharedApplication: UIApplication,
-                                               controller: UIViewController?,
-                                               openURL: @escaping ((URL) -> Void), completion: @escaping DropboxOAuthCompletion) {
-        precondition(DropboxOAuthManager.sharedOAuthManager != nil, "Call `DropboxClientsManager.setupWithAppKey` or `DropboxClientsManager.setupWithTeamAppKey` before calling this method")
+    @available(
+        *,
+        deprecated,
+        message: "This method was used for long-lived access tokens, which are now deprecated. Please use `authorizeFromControllerV2` instead."
+    )
+    public static func authorizeFromController(
+        _ sharedApplication: UIApplication,
+        controller: UIViewController?,
+        openURL: @escaping ((URL) -> Void),
+        completion: @escaping DropboxOAuthCompletion
+    ) {
+        precondition(
+            DropboxOAuthManager.sharedOAuthManager != nil,
+            "Call `DropboxClientsManager.setupWithAppKey` or `DropboxClientsManager.setupWithTeamAppKey` before calling this method"
+        )
         let sharedMobileApplication = MobileSharedApplication(sharedApplication: sharedApplication, controller: controller, openURL: openURL, completion: completion)
         MobileSharedApplication.sharedMobileApplication = sharedMobileApplication
         DropboxOAuthManager.sharedOAuthManager.authorizeFromSharedApplication(sharedMobileApplication)
@@ -41,7 +53,7 @@ extension DropboxClientsManager {
     ///
     /// - Parameters:
     ///     - sharedApplication: The shared UIApplication instance in your app.
-    ///     - controller: A UIViewController to present the auth flow from. Reference is weakly held.
+    ///     - controller: A UIViewController to present the auth flow from. This should be the top-most view controller. Reference is weakly held.
     ///     - loadingStatusDelegate: An optional delegate to handle loading experience during auth flow.
     ///       e.g. Show a loading spinner and block user interaction while loading/waiting.
     ///       If a delegate is not provided, the SDK will show a default loading spinner when necessary.
@@ -55,43 +67,239 @@ extension DropboxClientsManager {
     ///     API clients set up by `DropboxClientsManager` will get token refresh logic for free.
     ///     If you need to set up `DropboxClient`/`DropboxTeamClient` without `DropboxClientsManager`,
     ///     you will have to set up the clients with an appropriate `AccessTokenProvider`.
-    public static func authorizeFromControllerV2(_ sharedApplication: UIApplication,
-                                                 controller: UIViewController?,
-                                                 loadingStatusDelegate: LoadingStatusDelegate?,
-                                                 openURL: @escaping ((URL) -> Void), completion: @escaping DropboxOAuthCompletion,
-                                                 scopeRequest: ScopeRequest?
+    public static func authorizeFromControllerV2(
+        _ sharedApplication: UIApplication,
+        controller: UIViewController?,
+        loadingStatusDelegate: LoadingStatusDelegate?,
+        openURL: @escaping ((URL) -> Void),
+        completion: @escaping DropboxOAuthCompletion,
+        scopeRequest: ScopeRequest?
     ) {
-        precondition(DropboxOAuthManager.sharedOAuthManager != nil, "Call `DropboxClientsManager.setupWithAppKey` or `DropboxClientsManager.setupWithTeamAppKey` before calling this method")
+        precondition(
+            DropboxOAuthManager.sharedOAuthManager != nil,
+            "Call `DropboxClientsManager.setupWithAppKey` or `DropboxClientsManager.setupWithTeamAppKey` before calling this method"
+        )
         let sharedMobileApplication = MobileSharedApplication(sharedApplication: sharedApplication, controller: controller, openURL: openURL, completion: completion)
         sharedMobileApplication.loadingStatusDelegate = loadingStatusDelegate
         MobileSharedApplication.sharedMobileApplication = sharedMobileApplication
         DropboxOAuthManager.sharedOAuthManager.authorizeFromSharedApplication(sharedMobileApplication, usePKCE: true, scopeRequest: scopeRequest)
     }
 
-    public static func setupWithAppKey(_ appKey: String, transportClient: DropboxTransportClient? = nil) {
-        setupWithOAuthManager(appKey, oAuthManager: DropboxMobileOAuthManager(appKey: appKey), transportClient: transportClient)
+    public static func setupWithAppKey(
+        _ appKey: String,
+        transportClient: DropboxTransportClient? = nil,
+        backgroundTransportClient: DropboxTransportClient? = nil,
+        secureStorageAccess: SecureStorageAccess = SecureStorageAccessDefaultImpl(),
+        includeBackgroundClient: Bool = false,
+        requestsToReconnect: RequestsToReconnect? = nil
+    ) {
+        setupWithOAuthManager(
+            appKey,
+            oAuthManager: oAuthManager(appKey, secureStorageAccess: secureStorageAccess),
+            transportClient: transportClient,
+            backgroundTransportClient: backgroundTransportClient,
+            oauthSetupIntent: .init(userKind: .single, isTeam: false, includeBackgroundClient: includeBackgroundClient),
+            requestsToReconnect: requestsToReconnect
+        )
     }
 
-    public static func setupWithAppKeyMultiUser(_ appKey: String, transportClient: DropboxTransportClient? = nil, tokenUid: String?) {
-        setupWithOAuthManagerMultiUser(appKey, oAuthManager: DropboxMobileOAuthManager(appKey: appKey), transportClient: transportClient, tokenUid: tokenUid)
+    public static func setupWithAppKey(
+        _ appKey: String,
+        sessionConfiguration: NetworkSessionConfiguration?,
+        backgroundSessionConfiguration: NetworkSessionConfiguration?,
+        secureStorageAccess: SecureStorageAccess = SecureStorageAccessDefaultImpl(),
+        includeBackgroundClient: Bool = false,
+        requestsToReconnect: RequestsToReconnect? = nil
+    ) {
+        setupWithOAuthManager(
+            appKey,
+            oAuthManager: oAuthManager(appKey, secureStorageAccess: secureStorageAccess),
+            sessionConfiguration: sessionConfiguration,
+            backgroundSessionConfiguration: backgroundSessionConfiguration,
+            oauthSetupIntent: .init(userKind: .single, isTeam: false, includeBackgroundClient: includeBackgroundClient),
+            requestsToReconnect: requestsToReconnect
+        )
     }
 
-    public static func setupWithTeamAppKey(_ appKey: String, transportClient: DropboxTransportClient? = nil) {
-        setupWithOAuthManagerTeam(appKey, oAuthManager: DropboxMobileOAuthManager(appKey: appKey), transportClient: transportClient)
+    public static func setupWithAppKey(
+        _ appKey: String,
+        backgroundSessionIdentifier: String,
+        sharedContainerIdentifier: String? = nil,
+        secureStorageAccess: SecureStorageAccess = SecureStorageAccessDefaultImpl(),
+        requestsToReconnect: @escaping RequestsToReconnect
+    ) {
+        let backgroundNetworkSessionConfiguration = NetworkSessionConfiguration.background(
+            withIdentifier: backgroundSessionIdentifier,
+            sharedContainerIdentifier: sharedContainerIdentifier
+        )
+        setupWithAppKey(
+            appKey,
+            sessionConfiguration: nil,
+            backgroundSessionConfiguration: backgroundNetworkSessionConfiguration,
+            secureStorageAccess: secureStorageAccess,
+            includeBackgroundClient: true,
+            requestsToReconnect: requestsToReconnect
+        )
     }
 
-    public static func setupWithTeamAppKeyMultiUser(_ appKey: String, transportClient: DropboxTransportClient? = nil, tokenUid: String?) {
-        setupWithOAuthManagerMultiUserTeam(appKey, oAuthManager: DropboxMobileOAuthManager(appKey: appKey), transportClient: transportClient, tokenUid: tokenUid)
+    public static func setupWithAppKeyMultiUser(
+        _ appKey: String,
+        transportClient: DropboxTransportClient? = nil,
+        backgroundTransportClient: DropboxTransportClient? = nil,
+        tokenUid: String?,
+        secureStorageAccess: SecureStorageAccess = SecureStorageAccessDefaultImpl(),
+        includeBackgroundClient: Bool = false,
+        requestsToReconnect: RequestsToReconnect? = nil
+    ) {
+        setupWithOAuthManager(
+            appKey,
+            oAuthManager: oAuthManager(appKey, secureStorageAccess: secureStorageAccess),
+            transportClient: transportClient,
+            backgroundTransportClient: backgroundTransportClient,
+            oauthSetupIntent: .init(userKind: .multi(tokenUid: tokenUid), isTeam: false, includeBackgroundClient: includeBackgroundClient),
+            requestsToReconnect: requestsToReconnect
+        )
+    }
+
+    public static func setupWithAppKeyMultiUser(
+        _ appKey: String,
+        sessionConfiguration: NetworkSessionConfiguration?,
+        backgroundSessionConfiguration: NetworkSessionConfiguration?,
+        tokenUid: String?,
+        secureStorageAccess: SecureStorageAccess = SecureStorageAccessDefaultImpl(),
+        includeBackgroundClient: Bool = false,
+        requestsToReconnect: RequestsToReconnect? = nil
+    ) {
+        setupWithOAuthManager(
+            appKey,
+            oAuthManager: oAuthManager(appKey, secureStorageAccess: secureStorageAccess),
+            sessionConfiguration: sessionConfiguration,
+            backgroundSessionConfiguration: backgroundSessionConfiguration,
+            oauthSetupIntent: .init(userKind: .multi(tokenUid: tokenUid), isTeam: false, includeBackgroundClient: includeBackgroundClient),
+            requestsToReconnect: requestsToReconnect
+        )
+    }
+
+    public static func setupWithAppKeyMultiUser(
+        _ appKey: String,
+        backgroundSessionIdentifier: String,
+        sharedContainerIdentifier: String? = nil,
+        tokenUid: String?,
+        secureStorageAccess: SecureStorageAccess = SecureStorageAccessDefaultImpl(),
+        requestsToReconnect: @escaping RequestsToReconnect
+    ) {
+        let backgroundNetworkSessionConfiguration = NetworkSessionConfiguration.background(
+            withIdentifier: backgroundSessionIdentifier,
+            sharedContainerIdentifier: sharedContainerIdentifier
+        )
+        setupWithAppKeyMultiUser(
+            appKey,
+            sessionConfiguration: nil,
+            backgroundSessionConfiguration: backgroundNetworkSessionConfiguration,
+            tokenUid: tokenUid,
+            secureStorageAccess: secureStorageAccess,
+            includeBackgroundClient: true,
+            requestsToReconnect: requestsToReconnect
+        )
+    }
+
+    public static func setupWithTeamAppKey(
+        _ appKey: String,
+        transportClient: DropboxTransportClient? = nil,
+        secureStorageAccess: SecureStorageAccess = SecureStorageAccessDefaultImpl()
+    ) {
+        setupWithOAuthManager(
+            appKey,
+            oAuthManager: oAuthManager(appKey, secureStorageAccess: secureStorageAccess),
+            transportClient: transportClient,
+            backgroundTransportClient: nil,
+            oauthSetupIntent: .init(userKind: .single, isTeam: true, includeBackgroundClient: false)
+        )
+    }
+
+    public static func setupWithTeamAppKey(
+        _ appKey: String,
+        sessionConfiguration: NetworkSessionConfiguration?,
+        secureStorageAccess: SecureStorageAccess = SecureStorageAccessDefaultImpl()
+    ) {
+        setupWithOAuthManager(
+            appKey,
+            oAuthManager: oAuthManager(appKey, secureStorageAccess: secureStorageAccess),
+            sessionConfiguration: sessionConfiguration,
+            oauthSetupIntent: .init(userKind: .single, isTeam: true, includeBackgroundClient: false)
+        )
+    }
+
+    public static func setupWithTeamAppKeyMultiUser(
+        _ appKey: String,
+        transportClient: DropboxTransportClient? = nil,
+        secureStorageAccess: SecureStorageAccess = SecureStorageAccessDefaultImpl(),
+        tokenUid: String?
+    ) {
+        setupWithOAuthManager(
+            appKey,
+            oAuthManager: oAuthManager(appKey, secureStorageAccess: secureStorageAccess),
+            transportClient: transportClient,
+            backgroundTransportClient: nil,
+            oauthSetupIntent: .init(userKind: .multi(tokenUid: tokenUid), isTeam: true, includeBackgroundClient: false)
+        )
+    }
+
+    public static func setupWithTeamAppKeyMultiUser(
+        _ appKey: String,
+        sessionConfiguration: NetworkSessionConfiguration?,
+        secureStorageAccess: SecureStorageAccess = SecureStorageAccessDefaultImpl(),
+        tokenUid: String?
+    ) {
+        setupWithOAuthManager(
+            appKey,
+            oAuthManager: oAuthManager(appKey, secureStorageAccess: secureStorageAccess),
+            sessionConfiguration: sessionConfiguration,
+            oauthSetupIntent: .init(userKind: .multi(tokenUid: tokenUid), isTeam: true, includeBackgroundClient: false)
+        )
+    }
+
+    private static func oAuthManager(_ appKey: String, secureStorageAccess: SecureStorageAccess) -> DropboxMobileOAuthManager {
+        .init(appKey: appKey, secureStorageAccess: secureStorageAccess, dismissSharedAppAuthController: {
+            if let sharedMobileApplication = MobileSharedApplication.sharedMobileApplication {
+                sharedMobileApplication.dismissAuthController()
+            }
+        })
     }
 }
 
-open class DropboxMobileOAuthManager: DropboxOAuthManager {
+#endif
+
+public class DropboxMobileOAuthManager: DropboxOAuthManager {
     let dauthRedirectURL: URL
-    
-    public override init(appKey: String, host: String) {
+    let dismissSharedAppAuthController: () -> Void
+
+    public convenience init(
+        appKey: String,
+        host: String = "www.dropbox.com",
+        secureStorageAccess: SecureStorageAccess,
+        dismissSharedAppAuthController: @escaping () -> Void
+    ) {
+        self.init(
+            appKey: appKey,
+            host: host,
+            secureStorageAccess: secureStorageAccess,
+            networkSession: URLSession(configuration: .default),
+            dismissSharedAppAuthController: dismissSharedAppAuthController
+        )
+    }
+
+    init(
+        appKey: String,
+        host: String = "www.dropbox.com",
+        secureStorageAccess: SecureStorageAccess,
+        networkSession: NetworkSession,
+        dismissSharedAppAuthController: @escaping () -> Void
+    ) {
         self.dauthRedirectURL = URL(string: "db-\(appKey)://1/connect")!
-        super.init(appKey: appKey, host:host)
-        self.urls.append(self.dauthRedirectURL)
+        self.dismissSharedAppAuthController = dismissSharedAppAuthController
+        super.init(appKey: appKey, host: host, secureStorageAccess: secureStorageAccess, networkSession: networkSession)
+        urls.append(dauthRedirectURL)
     }
 
     internal override func extractFromUrl(_ url: URL, completion: @escaping DropboxOAuthCompletion) {
@@ -101,15 +309,16 @@ open class DropboxMobileOAuthManager: DropboxOAuthManager {
             extractFromRedirectURL(url, completion: completion)
         }
     }
-    
+
     internal override func checkAndPresentPlatformSpecificAuth(_ sharedApplication: SharedApplication) -> Bool {
-        if !self.hasApplicationQueriesSchemes() {
-            let message = "DropboxSDK: unable to link; app isn't registered to query for URL schemes dbapi-2 and dbapi-8-emm. Add a dbapi-2 entry and a dbapi-8-emm entry to LSApplicationQueriesSchemes"
+        if !hasApplicationQueriesSchemes() {
+            let message =
+                "DropboxSDK: unable to link; app isn't registered to query for URL schemes dbapi-2 and dbapi-8-emm. Add a dbapi-2 entry and a dbapi-8-emm entry to LSApplicationQueriesSchemes"
             let title = "SwiftyDropbox Error"
             sharedApplication.presentErrorMessage(message, title: title)
             return true
         }
-        
+
         if let scheme = dAuthScheme(sharedApplication) {
             let url: URL
             if let authSession = authSession {
@@ -126,12 +335,10 @@ open class DropboxMobileOAuthManager: DropboxOAuthManager {
         }
         return false
     }
-    
+
     open override func handleRedirectURL(_ url: URL, completion: @escaping DropboxOAuthCompletion) -> Bool {
-        super.handleRedirectURL(url, completion: {
-            if let sharedMobileApplication = MobileSharedApplication.sharedMobileApplication {
-                sharedMobileApplication.dismissAuthController()
-            }
+        super.handleRedirectURL(url, completion: { [weak self] in
+            self?.dismissSharedAppAuthController()
             completion($0)
         })
     }
@@ -168,7 +375,7 @@ open class DropboxMobileOAuthManager: DropboxOAuthManager {
         ]
         return components
     }
-    
+
     fileprivate func dAuthScheme(_ sharedApplication: SharedApplication) -> String? {
         if sharedApplication.canPresentExternalApp(dAuthURL("dbapi-2", nonce: nil)) {
             return "dbapi-2"
@@ -178,7 +385,7 @@ open class DropboxMobileOAuthManager: DropboxOAuthManager {
             return nil
         }
     }
-    
+
     func extractfromDAuthURL(_ url: URL, completion: @escaping DropboxOAuthCompletion) {
         switch url.path {
         case "/connect":
@@ -226,7 +433,7 @@ open class DropboxMobileOAuthManager: DropboxOAuthManager {
         if let code = parametersMap[OAuthConstants.oauthCodeKey] {
             authCode = code
         } else if parametersMap[OAuthConstants.oauthTokenKey] == "oauth2code:",
-            let code = parametersMap[OAuthConstants.oauthSecretKey] {
+                  let code = parametersMap[OAuthConstants.oauthSecretKey] {
             authCode = code
         } else {
             authCode = nil
@@ -254,17 +461,17 @@ open class DropboxMobileOAuthManager: DropboxOAuthManager {
         let parametersMap = OAuthUtils.extractDAuthResponseFromUrl(url)
         let state = parametersMap[OAuthConstants.stateKey]
         if let nonce = UserDefaults.standard.object(forKey: kDBLinkNonce) as? String, state == "oauth2:\(nonce)",
-            let accessToken = parametersMap[OAuthConstants.oauthSecretKey],
-            let uid = parametersMap[OAuthConstants.uidKey] {
+           let accessToken = parametersMap[OAuthConstants.oauthSecretKey],
+           let uid = parametersMap[OAuthConstants.uidKey] {
             return .success(DropboxAccessToken(accessToken: accessToken, uid: uid))
         } else {
             return .error(.unknown, "Unable to verify link request")
         }
     }
-    
+
     fileprivate func hasApplicationQueriesSchemes() -> Bool {
         let queriesSchemes = Bundle.main.object(forInfoDictionaryKey: "LSApplicationQueriesSchemes") as? [String] ?? []
-        
+
         var foundApi2 = false
         var foundApi8Emm = false
         for scheme in queriesSchemes {
@@ -299,14 +506,16 @@ open class DropboxMobileOAuthManager: DropboxOAuthManager {
     }
 }
 
-open class MobileSharedApplication: SharedApplication {
+#if os(iOS)
+
+public class MobileSharedApplication: SharedApplication {
     public static var sharedMobileApplication: MobileSharedApplication?
 
     let sharedApplication: UIApplication
     weak var controller: UIViewController?
-    let openURL: ((URL) -> Void)
+    let openURL: (URL) -> Void
     let completion: DropboxOAuthCompletion
-    
+
     weak var loadingStatusDelegate: LoadingStatusDelegate?
     
     // Authentication sessions need to be retained, and prevents showing two sessions/VCs at the same time
@@ -329,29 +538,31 @@ open class MobileSharedApplication: SharedApplication {
         }
     }
 
-    open func presentErrorMessage(_ message: String, title: String) {
+    public func presentErrorMessage(_ message: String, title: String) {
         let alertController = UIAlertController(
             title: title,
             message: message,
-            preferredStyle: UIAlertController.Style.alert)
+            preferredStyle: UIAlertController.Style.alert
+        )
         if let controller = controller {
             controller.present(alertController, animated: true, completion: { fatalError(message) })
         }
     }
 
-    open func presentErrorMessageWithHandlers(_ message: String, title: String, buttonHandlers: Dictionary<String, () -> Void>) {
+    public func presentErrorMessageWithHandlers(_ message: String, title: String, buttonHandlers: [String: () -> Void]) {
         let alertController = UIAlertController(
             title: title,
             message: message,
-            preferredStyle: UIAlertController.Style.alert)
+            preferredStyle: UIAlertController.Style.alert
+        )
 
-        alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel) { (_) in
+        alertController.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
             if let handler = buttonHandlers["Cancel"] {
                 handler()
             }
         })
 
-        alertController.addAction(UIAlertAction(title: "Retry", style: .default) { (_) in
+        alertController.addAction(UIAlertAction(title: "Retry", style: .default) { _ in
             if let handler = buttonHandlers["Retry"] {
                 handler()
             }
@@ -362,12 +573,12 @@ open class MobileSharedApplication: SharedApplication {
         }
     }
 
-    open func presentPlatformSpecificAuth(_ authURL: URL) -> Bool {
+    public func presentPlatformSpecificAuth(_ authURL: URL) -> Bool {
         presentExternalApp(authURL)
         return true
     }
 
-    open func presentAuthChannel(_ authURL: URL, tryIntercept: @escaping ((URL) -> Bool), cancelHandler: @escaping (() -> Void)) {
+    public func presentAuthChannel(_ authURL: URL, tryIntercept: @escaping ((URL) -> Bool), cancelHandler: @escaping (() -> Void)) {
         guard self.sessionOrViewController == nil else {
             return
         }
@@ -382,7 +593,7 @@ open class MobileSharedApplication: SharedApplication {
                 let session = MobileWebAuthenticationSession(url: authURL, presentingVC: controller) { [weak self] callbackUrl in
                     self?.sessionOrViewController = nil
                     if let url = callbackUrl {
-                        DropboxClientsManager.handleRedirectURL(url) { [weak self] result in
+                        DropboxClientsManager.handleRedirectURL(url, includeBackgroundClient: false) { [weak self] result in
                             self?.completion(result)
                         }
                     } else {
@@ -395,7 +606,7 @@ open class MobileSharedApplication: SharedApplication {
                 return
             }
         }
-        
+
         let safariVC = MobileSafariViewController(url: authURL, cancelHandler: cancelHandler, dismissHandler: { [weak self] svc, didCancel in
             self?.sessionOrViewController = nil
             
@@ -409,18 +620,18 @@ open class MobileSharedApplication: SharedApplication {
         controller.present(safariVC, animated: true, completion: nil)
     }
 
-    open func presentExternalApp(_ url: URL) {
-        self.openURL(url)
-        
+    public func presentExternalApp(_ url: URL) {
+        openURL(url)
+
         // Handed over control to safari. End flow with unknown login result
         self.completion(nil)
     }
 
-    open func canPresentExternalApp(_ url: URL) -> Bool {
-        return self.sharedApplication.canOpenURL(url)
+    public func canPresentExternalApp(_ url: URL) -> Bool {
+        sharedApplication.canOpenURL(url)
     }
 
-    open func dismissAuthController() {
+    public func dismissAuthController() {
         // Only MobileSafariViewController needs to be manually dismissed
         if let presentedViewController = self.sessionOrViewController as? MobileSafariViewController, !presentedViewController.isBeingDismissed {
             self.sessionOrViewController = nil
@@ -445,7 +656,7 @@ open class MobileSharedApplication: SharedApplication {
     }
 
     private var isWebOAuthFlow: Bool {
-        return controller?.presentedViewController is MobileSafariViewController
+        controller?.presentedViewController is MobileSafariViewController
     }
 
     /// Web OAuth flow, present the spinner over the MobileSafariViewController.
@@ -514,7 +725,7 @@ extension MobileWebAuthenticationSession: ASWebAuthenticationPresentationContext
     
 }
 
-open class MobileSafariViewController: SFSafariViewController, SFSafariViewControllerDelegate {
+public class MobileSafariViewController: SFSafariViewController, SFSafariViewControllerDelegate {
     var cancelHandler: (() -> Void) = {}
     var dismissHandler: ((MobileSafariViewController, Bool) -> Void)
 
@@ -529,11 +740,11 @@ open class MobileSafariViewController: SFSafariViewController, SFSafariViewContr
         }
 
         self.cancelHandler = cancelHandler
-        self.delegate = self;
+        self.delegate = self
     }
 
     public func safariViewController(_ controller: SFSafariViewController, didCompleteInitialLoad didLoadSuccessfully: Bool) {
-        if (!didLoadSuccessfully) {
+        if !didLoadSuccessfully {
             self.dismissHandler(self, false)
         }
     }
@@ -541,7 +752,6 @@ open class MobileSafariViewController: SFSafariViewController, SFSafariViewContr
     public func safariViewControllerDidFinish(_ controller: SFSafariViewController) {
         self.dismissHandler(self, true)
     }
-    
 }
 
 #endif
