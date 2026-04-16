@@ -12,7 +12,7 @@ let package = Package(
         .iOS(.v11),
     ],
     products: [
-        .library(name: "SwiftyDropbox", targets: ["SwiftyDropbox"]),
+        .library(name: "SwiftyDropbox", type: .dynamic, targets: ["SwiftyDropbox"]),
         .library(name: "SwiftyDropboxObjC", targets: ["SwiftyDropboxObjC"]),
     ],
     targets: [

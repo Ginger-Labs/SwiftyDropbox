@@ -1,0 +1,54 @@
+name: Build and Release XCFramework
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v10.2.2)'
+        required: true
+
+jobs:
+  build:
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.3.app
+
+      - name: Build XCFramework
+        run: ./build_xcframework.sh
+
+      - name: Compute checksum
+        id: checksum
+        run: |
+          CHECKSUM=$(swift package compute-checksum build/xcframeworks/SwiftyDropbox.xcframework.zip)
+          echo "value=$CHECKSUM" >> $GITHUB_OUTPUT
+          echo "Checksum: $CHECKSUM"
+
+      - name: Resolve tag name
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "name=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.tag.outputs.name }}" \
+            "build/xcframeworks/SwiftyDropbox.xcframework.zip" \
+            --title "SwiftyDropbox ${{ steps.tag.outputs.name }}" \
+            --notes "## Checksum
+          Update \`SwiftyDropboxBinary/Package.swift\` with:
+          \`\`\`
+          checksum: \"${{ steps.checksum.outputs.value }}\"
+          \`\`\`"
