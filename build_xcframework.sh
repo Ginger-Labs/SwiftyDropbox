@@ -16,7 +16,6 @@ mkdir -p "$DERIVED_DIR" "$STAGING_DIR" "$OUTPUT_DIR"
 
 COMMON_FLAGS=(
     SKIP_INSTALL=NO
-    BUILD_LIBRARY_FOR_DISTRIBUTION=YES
     ONLY_ACTIVE_ARCH=NO
 )
 
@@ -87,18 +86,87 @@ CATALYST_FW="$STAGING_DIR/catalyst/$FRAMEWORK_NAME.framework"
 for fw in "$IOS_FW" "$IOS_SIM_FW" "$CATALYST_FW"; do
     modules="$fw/Modules"
     [ -d "$fw/Versions/A/Modules" ] && modules="$fw/Versions/A/Modules"
-    if ! find "$modules" -name "*.swiftinterface" -print -quit | grep -q .; then
-        echo "ERROR: no .swiftinterface under $modules"
+    if ! find "$modules" -name "*.swiftmodule" -print -quit | grep -q .; then
+        echo "ERROR: no .swiftmodule under $modules"
         exit 1
     fi
 done
 
-echo "Creating XCFramework..."
-xcodebuild -create-xcframework \
-    -framework "$IOS_FW" \
-    -framework "$IOS_SIM_FW" \
-    -framework "$CATALYST_FW" \
-    -output "$OUTPUT_DIR/$FRAMEWORK_NAME.xcframework"
+echo "Assembling XCFramework..."
+# xcodebuild -create-xcframework requires .swiftinterface files, which are only
+# produced with BUILD_LIBRARY_FOR_DISTRIBUTION=YES. Since this xcframework is
+# built by and for the Notability app (same compiler, same codebase), we skip
+# library evolution and assemble the xcframework layout ourselves.
+XCF="$OUTPUT_DIR/$FRAMEWORK_NAME.xcframework"
+rm -rf "$XCF"
+mkdir -p "$XCF/ios-arm64" "$XCF/ios-arm64_x86_64-simulator" "$XCF/ios-arm64_x86_64-maccatalyst"
+cp -R "$IOS_FW"      "$XCF/ios-arm64/"
+cp -R "$IOS_SIM_FW"  "$XCF/ios-arm64_x86_64-simulator/"
+cp -R "$CATALYST_FW" "$XCF/ios-arm64_x86_64-maccatalyst/"
+
+cat >"$XCF/Info.plist" <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>AvailableLibraries</key>
+	<array>
+		<dict>
+			<key>BinaryPath</key>
+			<string>SwiftyDropbox.framework/Versions/A/SwiftyDropbox</string>
+			<key>LibraryIdentifier</key>
+			<string>ios-arm64_x86_64-maccatalyst</string>
+			<key>LibraryPath</key>
+			<string>SwiftyDropbox.framework</string>
+			<key>SupportedArchitectures</key>
+			<array>
+				<string>arm64</string>
+				<string>x86_64</string>
+			</array>
+			<key>SupportedPlatform</key>
+			<string>ios</string>
+			<key>SupportedPlatformVariant</key>
+			<string>maccatalyst</string>
+		</dict>
+		<dict>
+			<key>BinaryPath</key>
+			<string>SwiftyDropbox.framework/SwiftyDropbox</string>
+			<key>LibraryIdentifier</key>
+			<string>ios-arm64_x86_64-simulator</string>
+			<key>LibraryPath</key>
+			<string>SwiftyDropbox.framework</string>
+			<key>SupportedArchitectures</key>
+			<array>
+				<string>arm64</string>
+				<string>x86_64</string>
+			</array>
+			<key>SupportedPlatform</key>
+			<string>ios</string>
+			<key>SupportedPlatformVariant</key>
+			<string>simulator</string>
+		</dict>
+		<dict>
+			<key>BinaryPath</key>
+			<string>SwiftyDropbox.framework/SwiftyDropbox</string>
+			<key>LibraryIdentifier</key>
+			<string>ios-arm64</string>
+			<key>LibraryPath</key>
+			<string>SwiftyDropbox.framework</string>
+			<key>SupportedArchitectures</key>
+			<array>
+				<string>arm64</string>
+			</array>
+			<key>SupportedPlatform</key>
+			<string>ios</string>
+		</dict>
+	</array>
+	<key>CFBundlePackageType</key>
+	<string>XFWK</string>
+	<key>XCFrameworkFormatVersion</key>
+	<string>1.0</string>
+</dict>
+</plist>
+PLIST
 
 echo "Zipping..."
 cd "$OUTPUT_DIR"
